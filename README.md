@@ -20,8 +20,7 @@
 7. [Seeding Demonstration Data](#-seeding-demonstration-data)
 8. [Machine Learning Engine](#-machine-learning-engine)
 9. [REST API Documentation](#-rest-api-documentation)
-10. [Test Suite](#-test-suite)
-11. [Academic Project Viva / Defense FAQ](#-academic-project-viva--defense-faq)
+
 
 ---
 
@@ -229,37 +228,3 @@ CAR OS exposes clean JSON endpoints for headless integration:
 | `POST` | `/api/dataset/import` | Execute preview (dry-run) or live idempotent service history ingestion |
 | `GET` | `/api/ml/status` | Model status, active algorithms, confusion matrix, and transparency notices |
 | `GET` | `/api/reports` | Fleet cost summaries, total expenditures, and cost per km |
-
----
-
-## 🧪 Test Suite
-
-CAR OS includes 85 automated unit, integration, and lifecycle tests:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-**Coverage includes**:
-- **Calculation Unit Tests** (`test_calculations.py`): Boundary testing of the 0–100 health scoring, penalty capping (age, mileage, service history, defects), and valuation floors.
-- **Vehicle Model Tests** (`test_vehicles.py`): Form validation, negative odometer rejection, invalid year rejection, duplicate registration constraints.
-- **OBD-II Telemetry Tests** (`test_obd.py`): DTC code regex validation (`P/C/B/U + 4 hex`), missing telemetry preservation, severity classification.
-- **API & Module Tests** (`test_api.py`): EV vs ICE fuel efficiency calculation, zero-division guards, overdue reminder alerts, and decision recommendation logic.
-- **Dataset & Lifecycle Tests** (`test_dataset_and_lifecycle.py`): Excel workbook inspection, candidate mapping generation, dry-run simulation, live ingestion, idempotency duplicate prevention, TCO expense deduplication, EV battery SOH safeguards, and end-to-end multi-step workflow.
-
----
-
-## 🎓 Academic Project Viva / Defense FAQ
-
-**Q1: Why did you choose a deterministic rule-based formula as the primary engine instead of solely using Deep Learning or Machine Learning?**
-> *Answer*: Automotive safety and financial decisions require absolute explainability and predictability. A black-box ML model cannot be formally audited or guaranteed against edge-case hallucinations. CAR OS uses a transparent, auditable rule-based engine as primary authority, and integrates supervised ML models as companion comparative estimators.
-
-**Q2: How does the system handle Electric Vehicles (EVs) vs Internal Combustion Engine (ICE) vehicles?**
-> *Answer*: ICE vehicles measure fuel efficiency in $km/L$ with refuelling costs. EVs consume electrical energy measured in Kilowatt-hours ($kWh$) with charging metrics in $km/kWh$. CAR OS dynamically detects vehicle fuel type, applies appropriate unit converters, and computes unified cost-per-kilometre ($₹/km$) across all propulsion types. Furthermore, per literature survey guidelines (Haraz et al., Lanubile et al.), 12V auxiliary battery readings are strictly distinguished from High-Voltage (HV) Traction Battery State of Health (SOH).
-
-**Q3: Can the reference Excel dataset be used to train a predictive maintenance ML model?**
-> *Answer*: No. Inspection of `CAR_OS_Dataset_Service_History_VISIBLE.xlsx` reveals only 32 demonstration records across 16 vehicles, labeled as routine periodic services and repairs. There are no continuous sensor degradation time series or genuine component failure outcome labels. Attempting to train a supervised failure classifier on 32 synthetic rows would violate scientific integrity. The dataset is appropriately used as a validated historical service baseline.
-
-**Q4: How does CAR OS prevent double-counting in cost analytics?**
-> *Answer*: In `models/vehicle_models.py`, `MaintenanceRecord` supports an optional foreign key link to `ExpenseRecord` (`linked_maintenance_id` / `expense_id`). The financial aggregation service filters linked records so maintenance costs are never double-counted when compiling total cost of ownership.
-
