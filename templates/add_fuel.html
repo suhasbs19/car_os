@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Add Fuel Record{% endblock %}
+{% block page_title %}Add Fuel / Energy Record{% endblock %}
+{% block page_subtitle %}Log a refuel or charging event{% endblock %}
+{% block header_actions %}<a href="{{ url_for('fuel.list_fuel') }}" class="btn btn-secondary btn-sm">← Back</a>{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+  <div class="card-header">
+    <div class="card-title">⛽ New Fuel / Energy Record</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('fuel.add_fuel') }}" novalidate>
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="vehicle_id">Vehicle <span class="req">*</span></label>
+        <select id="vehicle_id" name="vehicle_id" required>
+          <option value="">Select vehicle…</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if form_data.get('vehicle_id')|string == v.id|string %}selected{% endif %}>
+            {{ v.registration_number }} – {{ v.make }} {{ v.model }} ({{ v.fuel_type }})
+          </option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">Fuel type and unit will be taken from the vehicle record.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Date <span class="req">*</span></label>
+        <input type="date" id="date" name="date"
+               value="{{ form_data.get('date', '') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="distance_km">Distance Travelled (km) <span class="req">*</span></label>
+        <input type="number" id="distance_km" name="distance_km" min="0.1" step="0.1"
+               value="{{ form_data.get('distance_km', '') }}" required />
+        <span class="form-hint">Distance covered since last fill-up or charge.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="quantity">Quantity <span class="req">*</span></label>
+        <input type="number" id="quantity" name="quantity" min="0.1" step="0.01"
+               value="{{ form_data.get('quantity', '') }}" required />
+        <span class="form-hint">Litres (petrol/diesel/hybrid), kg (CNG), or kWh (electric).</span>
+      </div>
+
+      <div class="form-group">
+        <label for="unit_price">Unit Price (₹/unit, optional)</label>
+        <input type="number" id="unit_price" name="unit_price" min="0.01" step="0.01"
+               value="{{ form_data.get('unit_price', '') }}" placeholder="e.g. 103.50/L or 9.0/kWh" />
+        <span class="form-hint">Auto-computes total cost if cost is blank.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="cost">Total Cost (₹) <span class="req">*</span></label>
+        <input type="number" id="cost" name="cost" min="0.01" step="0.01"
+               value="{{ form_data.get('cost', '') }}" placeholder="e.g. 3500.00" required />
+        <span class="form-hint">Recorded total spending (never multiplied twice).</span>
+      </div>
+
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" name="notes" rows="2"
+                placeholder="Station name, charging tariff, receipt details…">{{ form_data.get('notes', '') }}</textarea>
+    </div>
+
+    <div class="disclaimer" style="margin-top:12px;">
+      <strong>ℹ️ Segregated Energy Accounting:</strong> Electric (kWh) and ICE (L/kg) quantities are stored and displayed separately.
+      Economy is calculated as km/L for petrol/diesel, km/kg for CNG, and km/kWh for electric vehicles.
+    </div>
+
+    <div class="form-actions" style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary">✓ Save Record</button>
+      <a href="{{ url_for('fuel.list_fuel') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Dynamic client-side calculation helper: quantity * unit_price -> cost
+  const qtyInput = document.getElementById('quantity');
+  const upInput = document.getElementById('unit_price');
+  const costInput = document.getElementById('cost');
+
+  function updateCost() {
+    const qty = parseFloat(qtyInput.value) || 0;
+    const up = parseFloat(upInput.value) || 0;
+    if (qty > 0 && up > 0 && (!costInput.dataset.manual || costInput.value === '')) {
+      costInput.value = (qty * up).toFixed(2);
+    }
+  }
+
+  qtyInput.addEventListener('input', updateCost);
+  upInput.addEventListener('input', updateCost);
+  costInput.addEventListener('input', () => {
+    costInput.dataset.manual = costInput.value.length > 0 ? 'true' : '';
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Decision Analysis – {{ vehicle.registration_number }}{% endblock %}
+{% block page_title %}Decision Analysis{% endblock %}
+{% block page_subtitle %}{{ vehicle.make }} {{ vehicle.model }} · {{ vehicle.registration_number }}{% endblock %}
+{% block header_actions %}
+<div style="display:flex;gap:8px;">
+  <a href="{{ url_for('analytics.decisions') }}" class="btn btn-secondary btn-sm">← All Decisions</a>
+  <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=vehicle.id) }}" class="btn btn-secondary btn-sm">Vehicle Details</a>
+</div>
+{% endblock %}
+
+{% block content %}
+{% set rec = decision.recommendation | lower %}
+
+<!-- Status Header -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+  <span class="badge badge-teal">Ownership Decision Analysis</span>
+  <span class="text-xs text-muted">Explainable multi-factor evaluation of vehicle operating cost, condition index, and market depreciation.</span>
+</div>
+
+<!-- Main recommendation card -->
+<div class="decision-card {{ rec }}" style="margin-bottom:20px;padding:24px;">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.5px;font-weight:600;">RECOMMENDATION</div>
+      <div class="decision-label" style="font-size:30px;">
+        {% if rec == 'maintain' %}✅ Maintain Vehicle
+        {% elif rec == 'repair' %}🔧 Schedule Repairs
+        {% elif rec == 'sell' %}💱 Consider Selling
+        {% else %}❓ {{ decision.recommendation }}{% endif %}
+      </div>
+      <div class="text-sm" style="margin-top:6px;color:var(--text-secondary);">
+        Evaluation Confidence: <strong>{{ decision.confidence }}</strong>
+        {% if decision.confidence_rationale %}
+        <span class="text-xs text-muted" style="margin-left:8px;">({{ decision.confidence_rationale }})</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if decision.signal_counts %}
+    <div style="display:flex;gap:16px;margin-left:auto;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--healthy);">{{ decision.signal_counts.maintain }}</div>
+        <div class="text-xs text-muted">Maintain</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--attention);">{{ decision.signal_counts.repair }}</div>
+        <div class="text-xs text-muted">Repair</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--critical);">{{ decision.signal_counts.sell }}</div>
+        <div class="text-xs text-muted">Sell</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Key Factors -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px;">📋 Primary Decision Factors</div>
+    {% if decision.reasons %}
+    <ul class="decision-reasons">
+      {% for reason in decision.reasons %}
+      <li>{{ reason }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No factors available.</p>
+    {% endif %}
+  </div>
+
+  <!-- Vehicle Snapshot -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px;">🚘 Vehicle Profile Snapshot</div>
+    <div class="factor-row"><span class="factor-label">Registration</span><span class="factor-value text-mono">{{ vehicle.registration_number }}</span></div>
+    <div class="factor-row"><span class="factor-label">Make / Model</span><span class="factor-value">{{ vehicle.make }} {{ vehicle.model }}</span></div>
+    <div class="factor-row"><span class="factor-label">Year</span><span class="factor-value">{{ vehicle.manufacturing_year }}</span></div>
+    <div class="factor-row"><span class="factor-label">Fuel Type</span><span class="factor-value"><span class="badge badge-info">{{ vehicle.fuel_type }}</span></span></div>
+    <div class="factor-row"><span class="factor-label">Odometer</span><span class="factor-value">{{ '{:,.0f}'.format(vehicle.odometer_km) }} km</span></div>
+    <div class="factor-row"><span class="factor-label">Health Score</span>
+      <span class="factor-value">
+        {% if vehicle.health_score is not none %}
+        <span class="badge {% if vehicle.health_status == 'Healthy' %}badge-healthy{% elif vehicle.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+          {{ vehicle.health_score | round2 }} / 100 · {{ vehicle.health_status }}
+        </span>
+        {% else %}N/A{% endif %}
+      </span>
+    </div>
+    <div class="factor-row"><span class="factor-label">Resale Estimate</span><span class="factor-value" style="color:var(--teal);font-weight:700;">{{ vehicle.estimated_resale_value | inr }}</span></div>
+    <div class="factor-row"><span class="factor-label">Reported Issues</span><span class="factor-value {% if vehicle.reported_issues > 0 %}text-warning{% endif %}">{{ vehicle.reported_issues }}</span></div>
+    <div class="factor-row"><span class="factor-label">Service History</span><span class="factor-value">{{ vehicle.service_history }}</span></div>
+  </div>
+</div>
+
+<!-- Warnings -->
+{% if decision.warnings %}
+<div class="card">
+  <div class="card-title" style="margin-bottom:14px;">⚠️ Operational Data Gaps</div>
+  <ul class="warning-list">
+    {% for w in decision.warnings %}
+    <li>⚠️ {{ w }}</li>
+    {% endfor %}
+  </ul>
+  <p class="text-sm text-muted" style="margin-top:10px;">
+    Logging maintenance invoices, refuel/charging receipts, and diagnostic snapshots improves recommendation precision.
+  </p>
+</div>
+{% endif %}
+
+<!-- Thresholds -->
+<div class="card">
+  <div class="card-title" style="margin-bottom:14px;">⚙️ Configured Decision Thresholds</div>
+  <p class="text-sm text-muted" style="margin-bottom:12px;">
+    Transparent rules implemented in <code>services/decision_service.py</code> to support ownership planning.
+  </p>
+  {% if decision.thresholds_used %}
+  {% for key, val in decision.thresholds_used.items() %}
+  <div class="factor-row">
+    <span class="factor-label">{{ key | replace('_', ' ') | title }}</span>
+    <span class="factor-value text-mono">{{ val }}</span>
+  </div>
+  {% endfor %}
+  {% endif %}
+</div>
+
+{% endblock %}

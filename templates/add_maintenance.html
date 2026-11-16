@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Add Maintenance Record{% endblock %}
+{% block page_title %}Add Maintenance Record{% endblock %}
+{% block page_subtitle %}Log a service or repair event{% endblock %}
+{% block header_actions %}<a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary btn-sm">← Back</a>{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+  <div class="card-header">
+    <div class="card-title">🔧 New Service Record</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('maintenance.add_maintenance') }}" novalidate>
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="vehicle_id">Vehicle <span class="req">*</span></label>
+        <select id="vehicle_id" name="vehicle_id" required>
+          <option value="">Select vehicle…</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if form_data.get('vehicle_id')|string == v.id|string %}selected{% endif %}>
+            {{ v.registration_number }} – {{ v.make }} {{ v.model }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="service_date">Service Date <span class="req">*</span></label>
+        <input type="date" id="service_date" name="service_date"
+               value="{{ form_data.get('service_date', '') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="service_category">Category <span class="req">*</span></label>
+        <select id="service_category" name="service_category" required>
+          <option value="">Select category…</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {% if form_data.get('service_category') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="component_name">Component / Service Name <span class="req">*</span></label>
+        <input type="text" id="component_name" name="component_name"
+               value="{{ form_data.get('component_name', '') }}"
+               placeholder="e.g. Engine oil change, Brake pads…" required />
+      </div>
+
+      <div class="form-group">
+        <label for="odometer_at_service">Odometer at Service (km)</label>
+        <input type="number" id="odometer_at_service" name="odometer_at_service" min="0"
+               value="{{ form_data.get('odometer_at_service', '') }}" />
+      </div>
+
+      <div class="form-group">
+        <label for="cost">Cost (₹) <span class="req">*</span></label>
+        <input type="number" id="cost" name="cost" min="0" step="0.01"
+               value="{{ form_data.get('cost', '0') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if form_data.get('status', 'Completed') == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="next_service_date">Next Service Date (optional)</label>
+        <input type="date" id="next_service_date" name="next_service_date"
+               value="{{ form_data.get('next_service_date', '') }}" />
+        <span class="form-hint">Used for rule-based service reminders.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="next_service_odometer">Next Service Odometer (km, optional)</label>
+        <input type="number" id="next_service_odometer" name="next_service_odometer" min="0"
+               value="{{ form_data.get('next_service_odometer', '') }}" />
+      </div>
+
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="description">Description / Notes</label>
+      <textarea id="description" name="description" rows="3"
+                placeholder="Parts replaced, workshop name, observations…">{{ form_data.get('description', '') }}</textarea>
+    </div>
+
+    <div class="form-actions" style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary">✓ Save Record</button>
+      <a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

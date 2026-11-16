@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Diagnostics{% endblock %}
+{% block page_title %}Diagnostics{% endblock %}
+{% block page_subtitle %}Onboard diagnostic telemetry and diagnostic trouble codes (DTCs){% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('analytics.import_obd', vehicle_id=vehicle_id if vehicle_id else '') }}" class="btn btn-secondary btn-sm" style="margin-right:8px;">📥 Import OBD Data</a>
+<a href="{{ url_for('analytics.add_diagnostic') }}" class="btn btn-primary btn-sm">＋ Add Diagnostic Record</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header status bar -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+  <span class="badge badge-muted">Diagnostic Telemetry &amp; Trouble Codes</span>
+  <span class="text-xs text-muted">Snapshot telemetry, imported CSV logs, and DTC fault codes supplement physical workshop inspections. DTCs indicate circuit/sensor trigger thresholds, not definitive proof of mechanical failure.</span>
+</div>
+
+<form method="GET" action="{{ url_for('analytics.diagnostics') }}">
+  <div class="filters-bar">
+    <div class="form-group">
+      <label for="veh-filter">Vehicle</label>
+      <select id="veh-filter" name="vehicle_id">
+        <option value="">All Vehicles</option>
+        {% for v in vehicles %}
+        <option value="{{ v.id }}" {% if vehicle_id == v.id %}selected{% endif %}>
+          {{ v.registration_number }} – {{ v.make }} {{ v.model }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('analytics.diagnostics') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- ── OBD Telemetry History (Imported CSV & Live Logs) ─────────────────────── -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header">
+    <div class="card-title">🔌 OBD-II Telemetry Records
+      <span class="badge badge-teal" style="margin-left:8px;">{{ obd_records | length }}</span>
+    </div>
+    <a href="{{ url_for('analytics.import_obd', vehicle_id=vehicle_id if vehicle_id else '') }}" class="btn btn-secondary btn-sm">📥 Import CSV File</a>
+  </div>
+
+  {% if obd_records %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Vehicle</th>
+          <th>Data Source</th>
+          <th>Engine RPM</th>
+          <th>Speed</th>
+          <th>Coolant Temp</th>
+          <th>Battery Voltage</th>
+          <th>Trouble Codes (DTCs)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in obd_records %}
+        <tr>
+          <td class="text-mono" style="font-size:12px;">
+            {{ o.timestamp.strftime('%Y-%m-%d %H:%M:%S') if o.timestamp else '—' }}
+          </td>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=o.vehicle_id) }}" style="color:var(--teal);text-decoration:none;">
+              {{ o.vehicle.registration_number if o.vehicle else o.vehicle_id }}
+            </a>
+          </td>
+          <td>
+            <span class="badge {% if o.data_source == 'Imported CSV' %}badge-info{% else %}badge-muted{% endif %}">
+              {{ o.data_source }}
+            </span>
+          </td>
+          <td class="text-mono">
+            {% if o.engine_rpm is not none %}{{ '{:,.0f}'.format(o.engine_rpm) }} RPM{% else %}—{% endif %}
+          </td>
+          <td class="text-mono">
+            {% if o.vehicle_speed_kmh is not none %}{{ o.vehicle_speed_kmh }} km/h{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if o.coolant_temp_c is not none %}
+              <span {% if o.coolant_temp_c >= 105 %}style="color:var(--critical);font-weight:700;"{% endif %}>
+                {{ o.coolant_temp_c }} °C
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if o.battery_voltage is not none %}
+              <span {% if o.battery_voltage < 11.8 %}style="color:var(--critical);font-weight:700;"{% endif %}>
+                {{ o.battery_voltage }} V
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if o.dtc_list %}
+              {% for code in o.dtc_list %}
+              <span class="badge badge-critical" style="font-family:monospace;font-size:11px;">{{ code }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="badge badge-healthy" style="font-size:11px;">No DTCs</span>
+            {% endif %}
+          </td>
+          <td class="text-sm text-muted" style="max-width:240px;word-break:break-word;">
+            {{ o.notes or '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:28px;">
+    <div class="empty-icon">🔌</div>
+    <h3>No OBD-II telemetry records</h3>
+    <p>Upload a .csv data file from an OBD scanner or Toyota Etios research dataset.</p>
+    <a href="{{ url_for('analytics.import_obd', vehicle_id=vehicle_id if vehicle_id else '') }}" class="btn btn-primary">📥 Import OBD CSV</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Manual Diagnostic Records ───────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🔍 Manual Diagnostic Entries
+      <span class="badge badge-muted" style="margin-left:8px;">{{ records | length }}</span>
+    </div>
+  </div>
+
+  {% if records %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Vehicle</th><th>Data Source</th><th>DTC Code</th>
+        <th>Parameter</th><th>Value</th><th>Notes</th>
+      </tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.date }}</td>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=r.vehicle_id) }}" style="color:var(--teal);text-decoration:none;">
+              {{ r.vehicle.registration_number if r.vehicle else r.vehicle_id }}
+            </a>
+          </td>
+          <td><span class="badge badge-muted">{{ r.data_source }}</span></td>
+          <td>
+            {% if r.dtc_code %}
+            <span class="badge badge-critical" style="font-family:monospace;font-size:12px;">{{ r.dtc_code }}</span>
+            {% else %}
+            <span class="badge badge-healthy" style="font-size:11px;">No DTCs</span>
+            {% endif %}
+          </td>
+          <td>{{ r.parameter_name or '—' }}</td>
+          <td class="text-mono">{{ r.parameter_value or '—' }}</td>
+          <td class="text-sm text-muted">{{ r.notes or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:24px;">
+    <p class="text-muted">No manual diagnostic entries recorded.</p>
+    <a href="{{ url_for('analytics.add_diagnostic') }}" class="btn btn-secondary btn-sm">＋ Add Diagnostic Record</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

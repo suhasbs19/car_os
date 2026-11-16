@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+{% block title %}{{ vehicle.registration_number }} – Details{% endblock %}
+{% block page_title %}{{ vehicle.make }} {{ vehicle.model }}{% endblock %}
+{% block page_subtitle %}{{ vehicle.registration_number }} · {{ vehicle.fuel_type }} · {{ vehicle.manufacturing_year }}{% endblock %}
+
+{% block header_actions %}
+<div style="display:flex;gap:8px;">
+  <a href="{{ url_for('maintenance.add_maintenance') }}?vehicle_id={{ vehicle.id }}" class="btn btn-secondary btn-sm">+ Maintenance</a>
+  <a href="{{ url_for('fuel.add_fuel') }}?vehicle_id={{ vehicle.id }}" class="btn btn-secondary btn-sm">+ Fuel</a>
+  <a href="{{ url_for('analytics.add_expense') }}?vehicle_id={{ vehicle.id }}" class="btn btn-secondary btn-sm">+ Expense</a>
+  <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">← Back</a>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Summary row ──────────────────────────────────────────── -->
+<div class="grid-3" style="margin-bottom:20px;">
+
+  <!-- Health Score -->
+  <div class="card" style="margin-bottom:0;">
+    <div class="card-title" style="margin-bottom:14px;">❤️ Health Score</div>
+    {% if vehicle.health_score is not none %}
+    <div class="health-score-big {{ vehicle.health_status | lower }}">
+      {{ vehicle.health_score | round2 }}
+      <span style="font-size:18px;color:var(--text-muted)">/100</span>
+    </div>
+    <div style="margin-top:10px;">
+      <div class="health-bar-wrap">
+        <div class="health-bar {{ vehicle.health_status | lower }}"
+             data-width="{{ vehicle.health_score }}" style="width:0%;"></div>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <span class="badge {% if vehicle.health_status == 'Healthy' %}badge-healthy{% elif vehicle.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+        {{ vehicle.health_status }}
+      </span>
+    </div>
+    {% else %}
+    <p class="text-muted">Not calculated</p>
+    {% endif %}
+    <div class="disclaimer" style="margin-top:12px;font-size:11px;">{{ health_disclaimer }}</div>
+  </div>
+
+  <!-- Vehicle Info -->
+  <div class="card" style="margin-bottom:0;">
+    <div class="card-title" style="margin-bottom:14px;">🚘 Vehicle Info</div>
+    <div class="factor-row"><span class="factor-label">Registration</span><span class="factor-value text-mono">{{ vehicle.registration_number }}</span></div>
+    <div class="factor-row"><span class="factor-label">Make / Model</span><span class="factor-value">{{ vehicle.make }} {{ vehicle.model }}</span></div>
+    {% if vehicle.variant %}
+    <div class="factor-row"><span class="factor-label">Variant / Trim</span><span class="factor-value" style="color:var(--teal);font-weight:600;">{{ vehicle.variant }}</span></div>
+    {% endif %}
+    <div class="factor-row"><span class="factor-label">Year / Transmission</span><span class="factor-value">{{ vehicle.manufacturing_year }} · {{ vehicle.transmission or 'Manual' }}</span></div>
+    <div class="factor-row"><span class="factor-label">Fuel / Power</span><span class="factor-value"><span class="badge badge-info">{{ vehicle.fuel_type }}</span></span></div>
+    <div class="factor-row"><span class="factor-label">Odometer</span><span class="factor-value">{{ '{:,.0f}'.format(vehicle.odometer_km) }} km</span></div>
+    <div class="factor-row"><span class="factor-label">Service History</span><span class="factor-value">{{ vehicle.service_history }}</span></div>
+    <div class="factor-row"><span class="factor-label">Reported Issues</span><span class="factor-value {% if vehicle.reported_issues > 0 %}text-warning{% endif %}">{{ vehicle.reported_issues }}</span></div>
+  </div>
+
+  <!-- Resale & Valuation -->
+  <div class="card" style="margin-bottom:0;">
+    <div class="card-title" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span>💰 Tri-Value Valuation</span>
+      <span class="badge {% if valuation_detail.confidence_status == 'high' %}badge-healthy{% elif valuation_detail.confidence_status == 'medium' %}badge-attention{% else %}badge-info{% endif %}" style="font-size:10px;">
+        {{ valuation_detail.valuation_method or 'model-based' }} ({{ valuation_detail.confidence_status or 'medium' }})
+      </span>
+    </div>
+
+    <!-- 1. Original Showroom Price -->
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+        <span class="text-xs text-muted">1. Original Showroom Price</span>
+        {% if vehicle.original_showroom_price %}
+          {% if vehicle.showroom_price_verified %}
+            <span class="badge badge-healthy" style="font-size:9px;">Verified Ex-Showroom</span>
+          {% else %}
+            <span class="badge badge-attention" style="font-size:9px;">User-Entered (Unverified)</span>
+          {% endif %}
+        {% else %}
+          <span class="badge badge-secondary" style="font-size:9px;">Ex-Showroom</span>
+        {% endif %}
+      </div>
+
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-top:2px;">
+        {% if vehicle.original_showroom_price %}
+          {{ vehicle.original_showroom_price | inr }}
+        {% elif valuation_detail.original_showroom_price %}
+          {{ valuation_detail.original_showroom_price | inr }}
+        {% else %}
+          <span style="color:var(--amber);font-size:13px;font-weight:600;">Original showroom price unavailable — please enter it manually.</span>
+        {% endif %}
+      </div>
+
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        {% if vehicle.original_showroom_price %}
+          Base price at purchase (excludes taxes, insurance, registration).
+          {% if vehicle.showroom_price_source %}
+            <span style="margin-left:4px;">Source: <strong>{{ vehicle.showroom_price_source }}</strong></span>
+          {% endif %}
+          {% if vehicle.showroom_price_notes %}
+            <span style="margin-left:4px;">({{ vehicle.showroom_price_notes }})</span>
+          {% endif %}
+        {% else %}
+          Base price at purchase (excludes taxes, insurance, registration).
+        {% endif %}
+      </div>
+
+      <!-- Reference starting price if available from Top 5 Brands Document -->
+      {% if not vehicle.original_showroom_price and reference_starting_price %}
+      <div class="text-xs text-muted" style="font-size:11px;margin-top:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:4px;border-left:2px solid var(--teal);">
+        <em>Reference: 2026 starting price for {{ vehicle.make }} {{ vehicle.model }} is <strong>{{ reference_starting_price.starting_price_inr | inr }}</strong> (Base trim; {{ reference_starting_price.notes }}).</em>
+      </div>
+      {% endif %}
+
+      <!-- Manual Showroom Price Entry Form (shown when missing or expandable to edit) -->
+      {% if not vehicle.original_showroom_price %}
+      <form method="POST" action="{{ url_for('vehicles.update_showroom_price', vehicle_id=vehicle.id) }}" style="margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="number" name="showroom_price" placeholder="Ex-Showroom Price (₹)" class="form-control" style="width:160px;height:30px;font-size:12px;" required min="10000" max="200000000">
+        <input type="text" name="showroom_price_source" placeholder="Source (e.g. Invoice)" class="form-control" style="width:160px;height:30px;font-size:12px;">
+        <input type="text" name="showroom_price_notes" placeholder="Notes (optional)" class="form-control" style="width:160px;height:30px;font-size:12px;">
+        <button type="submit" class="btn btn-primary" style="height:30px;padding:2px 10px;font-size:11px;">Save Price</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- 2. Current Market Price -->
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-xs text-muted">2. Current Market Asking Price</span>
+        <span class="badge badge-info" style="font-size:9px;">{{ valuation_detail.comparable_listings_count or 0 }} comparables</span>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:var(--teal);margin-top:2px;">
+        {% if valuation_detail.current_market_price %}
+          {{ valuation_detail.current_market_price | inr }}
+        {% else %}
+          <span class="text-muted" style="font-size:13px;">Market data unavailable</span>
+        {% endif %}
+      </div>
+      {% if valuation_detail.market_asking_range and valuation_detail.market_asking_range[0] %}
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        Asking Range: {{ valuation_detail.market_asking_range[0] | inr }} – {{ valuation_detail.market_asking_range[1] | inr }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 3. Estimated Resale Value -->
+    <div style="background:rgba(32,201,151,0.06);border:1px solid rgba(32,201,151,0.25);border-radius:6px;padding:8px 12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="text-xs" style="color:var(--teal);font-weight:600;">3. Estimated Resale Value</span>
+        {% if valuation_detail.depreciation_percentage is not none %}
+        <span class="badge badge-warning" style="font-size:9px;">-{{ valuation_detail.depreciation_percentage }}% Deprec.</span>
+        {% endif %}
+      </div>
+      <div style="font-size:22px;font-weight:800;color:var(--teal);margin-top:2px;">
+        {{ vehicle.estimated_resale_value | inr }}
+      </div>
+      {% if valuation_detail.price_range_inr %}
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        Confidence Band: {{ valuation_detail.price_range_inr[0] | inr }} – {{ valuation_detail.price_range_inr[1] | inr }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Key Factors -->
+    <div class="factor-row"><span class="factor-label">Valuation Engine</span><span class="factor-value">
+      {% if valuation_detail.valuation_engine == 'cardekho_ml' %}
+        <span class="badge badge-teal" style="font-size:10px;">CarDekho ML Model</span>
+      {% elif valuation_detail.valuation_engine == 'ev_baseline_fallback' %}
+        <span class="badge badge-info" style="font-size:10px;">EV Depreciation Benchmark</span>
+      {% elif valuation_detail.valuation_engine == 'market_comparables' %}
+        <span class="badge badge-info" style="font-size:10px;">Market Comparables</span>
+      {% else %}
+        <span class="badge badge-muted" style="font-size:10px;">Rule-Based Fallback</span>
+      {% endif %}
+      <span class="text-xs text-muted">{{ valuation_detail.valuation_source }}</span>
+    </span></div>
+    <div class="factor-row"><span class="factor-label">Depreciation</span><span class="factor-value">{% if valuation_detail.depreciation_amount %}{{ valuation_detail.depreciation_amount | inr }} ({{ valuation_detail.depreciation_percentage }}%){% else %}N/A{% endif %}</span></div>
+    <div class="factor-row"><span class="factor-label">Vehicle Age</span><span class="factor-value">{{ valuation_detail.factors.age_years }} yrs ({{ '%.2f' | format(valuation_detail.factors.age_factor) }}×)</span></div>
+    <div class="factor-row"><span class="factor-label">Mileage Factor</span><span class="factor-value">{{ '%.4f' | format(valuation_detail.factors.mileage_factor) }}×</span></div>
+    <div class="factor-row"><span class="factor-label">Condition Factor</span><span class="factor-value">{{ '%.4f' | format(valuation_detail.factors.condition_factor) }}×</span></div>
+
+    {% if valuation_detail.fallback_reason %}
+    <div style="margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:4px;font-size:10px;color:var(--text-muted);">
+      ℹ️ {{ valuation_detail.fallback_reason }}
+    </div>
+    {% endif %}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+      <form action="{{ url_for('vehicles.recalculate_vehicle', vehicle_id=vehicle.id) }}" method="POST">
+        <button type="submit" class="btn btn-secondary btn-sm">↻ Recalculate</button>
+      </form>
+      <a href="{{ url_for('analytics.valuation') }}" class="btn btn-link btn-sm text-xs">Fleet Valuation →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Upcoming Maintenance ─────────────────────────────────── -->
+{% if upcoming %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🔔 Service Reminders</div>
+    <span class="text-xs text-muted">Rule-based reminders, not ML predictions</span>
+  </div>
+  {% for item in upcoming %}
+  <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;">
+    <span class="badge {% if item.status == 'Overdue' %}badge-critical{% else %}badge-attention{% endif %}">{{ item.status }}</span>
+    <div>
+      <div class="fw-600">{{ item.component }} <span class="text-muted text-sm">· {{ item.category }}</span></div>
+      {% for r in item.reasons %}
+      <div class="text-sm text-muted">{{ r }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── OBD-II Diagnostic Telemetry ──────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="card-title">🔌 OBD-II Diagnostic Telemetry</div>
+      {% if latest_obd %}
+        <span class="badge badge-muted">Snapshot Record (Manual Entry)</span>
+        <span class="badge {% if latest_obd.connection_status == 'Connected' %}badge-healthy{% else %}badge-secondary{% endif %}">
+          {{ latest_obd.connection_status or 'Not connected' }}
+        </span>
+        <span class="badge badge-info">{{ latest_obd.data_source }}</span>
+      {% else %}
+        <span class="badge badge-muted">No Telemetry Recorded</span>
+      {% endif %}
+    </div>
+    {% if latest_obd %}
+    <span class="text-xs text-muted">
+      Last recorded: {{ latest_obd.timestamp.strftime('%d %b %Y, %I:%M %p') if latest_obd.timestamp else 'N/A' }}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if latest_obd %}
+
+    <!-- Critical / Condition Alerts -->
+    {% if obd_analysis and obd_analysis.critical_flags %}
+    <div style="margin-bottom:16px;">
+      {% for flag in obd_analysis.critical_flags %}
+      <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:18px;">⚠️</span>
+        <div>
+          <strong style="color:var(--danger)">{{ flag.type }}</strong>
+          <div class="text-sm" style="color:var(--text-primary);margin-top:2px;">{{ flag.message }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Available Telemetry Readings Grid -->
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Engine Speed</span>
+        <div class="fw-700" style="font-size:20px;color:var(--text-primary);margin-top:4px;">
+          {% if latest_obd.engine_rpm is not none %}{{ '{:,.0f}'.format(latest_obd.engine_rpm) }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">RPM</span>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Vehicle Speed</span>
+        <div class="fw-700" style="font-size:20px;color:var(--text-primary);margin-top:4px;">
+          {% if latest_obd.vehicle_speed_kmh is not none %}{{ latest_obd.vehicle_speed_kmh }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">km/h</span>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Coolant Temperature</span>
+        {% if latest_obd.coolant_temp_c and latest_obd.coolant_temp_c >= 105 %}
+        <div class="fw-700" style="font-size:20px;margin-top:4px;color:var(--critical,#ef4444);">
+        {% else %}
+        <div class="fw-700" style="font-size:20px;margin-top:4px;color:var(--teal);">
+        {% endif %}
+          {% if latest_obd.coolant_temp_c is not none %}{{ latest_obd.coolant_temp_c }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">°C</span>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Engine Load</span>
+        <div class="fw-700" style="font-size:20px;color:var(--text-primary);margin-top:4px;">
+          {% if latest_obd.engine_load_pct is not none %}{{ latest_obd.engine_load_pct }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">%</span>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Throttle Position</span>
+        <div class="fw-700" style="font-size:20px;color:var(--text-primary);margin-top:4px;">
+          {% if latest_obd.throttle_pos_pct is not none %}{{ latest_obd.throttle_pos_pct }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">%</span>{% else %}—{% endif %}
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;">
+        <span class="text-xs text-muted">Battery Voltage {% if vehicle.fuel_type == 'Electric' %}(12V Aux){% endif %}</span>
+        {% if latest_obd.battery_voltage and latest_obd.battery_voltage < 11.8 %}
+        <div class="fw-700" style="font-size:20px;margin-top:4px;color:var(--critical,#ef4444);">
+        {% else %}
+        <div class="fw-700" style="font-size:20px;margin-top:4px;color:var(--teal);">
+        {% endif %}
+          {% if latest_obd.battery_voltage is not none %}{{ latest_obd.battery_voltage }} <span style="font-size:13px;font-weight:400;color:var(--text-muted)">V</span>{% else %}—{% endif %}
+        </div>
+        {% if vehicle.fuel_type == 'Electric' %}
+        <span class="text-xs text-muted" style="display:block;font-size:10px;">Auxiliary 12V only</span>
+        {% endif %}
+      </div>
+      <div class="card" style="margin-bottom:0;background:rgba(255,255,255,0.02);padding:14px;grid-column:span 2;">
+        <span class="text-xs text-muted">Fuel-System Status</span>
+        <div class="fw-600" style="font-size:14px;color:var(--text-primary);margin-top:4px;">
+          {{ latest_obd.fuel_system_status or '—' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnostic Trouble Codes Section -->
+    <div style="margin-top:16px;">
+      <div class="fw-700" style="font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>Diagnostic Trouble Codes (DTCs):</span>
+        {% if latest_obd.dtc_list %}
+          {% for code in latest_obd.dtc_list %}
+          <span class="badge badge-critical" style="font-size:12px;">{{ code }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="badge badge-healthy" style="font-size:12px;">No Diagnostic Faults Detected</span>
+        {% endif %}
+      </div>
+      <span class="text-xs text-muted" style="display:block;margin-bottom:12px;">
+        ℹ️ Trouble codes represent electronic sensor/circuit triggers. They are diagnostic clues, not definitive proof of mechanical failure.
+      </span>
+
+
+      {% if obd_analysis and obd_analysis.dtc_explanations %}
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+        {% for dtc in obd_analysis.dtc_explanations %}
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+            <span class="badge {% if dtc.severity == 'Critical' %}badge-critical{% elif dtc.severity == 'Moderate' %}badge-attention{% else %}badge-info{% endif %}">
+              {{ dtc.code }} · {{ dtc.severity }}
+            </span>
+            <strong style="color:var(--text-primary)">{{ dtc.title }}</strong>
+            <span class="text-xs text-muted">({{ dtc.subsystem }})</span>
+          </div>
+          <p class="text-sm text-muted" style="margin-bottom:6px;">
+            <strong style="color:var(--text-secondary)">Possible Indication:</strong> {{ dtc.explanation }}
+          </p>
+          <p class="text-sm" style="color:var(--teal);margin-bottom:0;">
+            <strong>Recommended Action:</strong> {{ dtc.recommendation }}
+          </p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if latest_obd.notes %}
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <span class="text-xs text-muted">Diagnostic Notes:</span>
+      <p class="text-sm" style="margin-top:4px;color:var(--text-secondary)">{{ latest_obd.notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="disclaimer" style="margin-top:16px;font-size:11px;">
+      {{ obd_analysis.disclaimer if obd_analysis else 'OBD data is advisory and does not replace professional mechanical diagnosis.' }}
+    </div>
+
+  {% else %}
+    <div class="empty-state" style="padding:28px 16px;">
+      <div class="empty-icon" style="font-size:32px;">🔌</div>
+      <p class="text-muted" style="margin-bottom:6px;">No OBD-II diagnostic data recorded for this vehicle yet.</p>
+      <span class="text-xs text-muted">
+        Diagnostic trouble codes and snapshot telemetry can be logged during vehicle registration or updated via diagnostic scanner.
+      </span>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ── Tabs: Maintenance / Fuel / Expenses ───────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🔧 Maintenance History</div>
+    <div style="display:flex;gap:8px;">
+      <a href="{{ url_for('maintenance.add_maintenance') }}?vehicle_id={{ vehicle.id }}" class="btn btn-primary btn-sm">＋ Add Record</a>
+    </div>
+  </div>
+
+  {% if scheduled_budget %}
+  <div style="margin-bottom:18px;padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(0,229,204,0.25);border-radius:var(--radius-sm);">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📅</span>
+        <strong style="color:var(--text-primary);font-size:14px;">Next Scheduled Service Budget: {{ '{:,.0f}'.format(scheduled_budget.next_interval_km) }} km</strong>
+        <span class="badge {% if scheduled_budget.is_empirical_match %}badge-teal{% else %}badge-info{% endif %}" style="font-size:11px;">
+          {{ scheduled_budget.service_scope }}
+        </span>
+      </div>
+      <div class="text-xs text-muted">
+        Due in ~{{ '{:,.0f}'.format(scheduled_budget.km_until_service) }} km
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:12px;margin:8px 0;">
+      <span style="font-size:22px;font-weight:700;color:var(--teal);">{{ scheduled_budget.estimated_cost_inr | inr }}</span>
+      <span class="text-xs text-muted">Benchmark Range: {{ scheduled_budget.cost_range_inr[0] | inr }} – {{ scheduled_budget.cost_range_inr[1] | inr }}</span>
+    </div>
+
+    {% if scheduled_budget.recommended_checklist %}
+    <div style="margin-top:8px;">
+      <span class="text-xs text-muted" style="font-weight:600;">Key Periodic Maintenance Items (Empirical Frequency):</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        {% for item in scheduled_budget.recommended_checklist[:5] %}
+        <span class="badge badge-secondary" style="font-size:11px;">
+          {{ item.component_name }} ({{ item.replacement_likelihood_pct }}%)
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="disclaimer" style="margin-top:10px;font-size:11px;">
+      ℹ️ <strong>Advisory Budget Only:</strong> {{ scheduled_budget.disclaimer }}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if maint_records %}
+  <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;">
+    <div><span class="text-muted text-sm">Total Records:</span> <strong>{{ maint_stats.total_records }}</strong></div>
+    <div><span class="text-muted text-sm">Total Cost:</span> <strong style="color:var(--teal)">{{ maint_stats.total_cost | inr }}</strong></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Category</th><th>Component</th><th>Odometer</th><th>Cost</th><th>Next Service</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for r in maint_records %}
+        <tr>
+          <td>{{ r.service_date }}</td>
+          <td>{{ r.service_category }}</td>
+          <td class="primary">
+            {{ r.component_name }}
+            {% if r.source_record_id %}
+            <span class="badge badge-yellow" style="font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;margin-left:6px;font-weight:600;" title="Source: {{ r.source_record_id }} ({{ r.evidence_status or 'Synthetic demo record' }})">
+              ⚠️ Synthetic demo record [{{ r.source_record_id }}]
+            </span>
+            {% endif %}
+          </td>
+          <td>{% if r.odometer_at_service %}{{ '{:,.0f}'.format(r.odometer_at_service) }} km{% else %}—{% endif %}</td>
+          <td style="color:var(--teal)">{{ r.cost | inr }}</td>
+          <td class="text-sm">
+            {% if r.next_service_date %}{{ r.next_service_date }}{% endif %}
+            {% if r.next_service_odometer %}/ {{ '{:,.0f}'.format(r.next_service_odometer) }} km{% endif %}
+            {% if not r.next_service_date and not r.next_service_odometer %}—{% endif %}
+          </td>
+          <td><span class="badge {% if r.status == 'Completed' %}badge-healthy{% elif r.status == 'Pending' %}badge-attention{% else %}badge-muted{% endif %}">{{ r.status }}</span></td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm"
+              onclick="openDeleteModal('del-maint-{{ r.id }}', '{{ r.component_name }}')">Del</button>
+            <form id="del-maint-{{ r.id }}" action="{{ url_for('maintenance.delete_maintenance', record_id=r.id) }}" method="POST" style="display:none;"></form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:32px;">
+    <div class="empty-icon" style="font-size:36px;">🔧</div>
+    <p>No maintenance records yet.</p>
+    <a href="{{ url_for('maintenance.add_maintenance') }}?vehicle_id={{ vehicle.id }}" class="btn btn-primary">＋ Add First Record</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Fuel Summary ─────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">⛽ Fuel &amp; Energy Summary</div>
+    <a href="{{ url_for('fuel.list_fuel') }}?vehicle_id={{ vehicle.id }}" class="btn btn-secondary btn-sm">View All</a>
+  </div>
+  {% if fuel_stats.total_records > 0 %}
+  <div class="grid-3" style="margin-bottom:0;">
+    <div><span class="text-muted text-sm">Total Distance</span><div class="fw-700" style="font-size:18px;">{{ fuel_stats.total_distance_km }} km</div></div>
+    <div>
+      <span class="text-muted text-sm">Avg Efficiency</span>
+      <div class="fw-700" style="font-size:18px;color:var(--teal);">
+        {% if fuel_stats.average_efficiency %}{{ fuel_stats.average_efficiency }} {{ fuel_stats.unit }}{% else %}N/A{% endif %}
+      </div>
+    </div>
+    <div><span class="text-muted text-sm">Total Fuel Cost</span><div class="fw-700" style="font-size:18px;color:var(--attention);">{{ fuel_stats.total_cost | inr }}</div></div>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:24px;">
+    <p>No fuel records. <a href="{{ url_for('fuel.add_fuel') }}?vehicle_id={{ vehicle.id }}" style="color:var(--teal);">Add fuel record</a></p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Expenses Summary ─────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">💸 Expenses</div>
+    <a href="{{ url_for('analytics.list_expenses') }}?vehicle_id={{ vehicle.id }}" class="btn btn-secondary btn-sm">View All</a>
+  </div>
+  {% if expense_records %}
+  <div style="margin-bottom:12px;">Total: <strong style="color:var(--teal)">{{ total_expenses | inr }}</strong></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Description</th></tr></thead>
+      <tbody>
+        {% for e in expense_records[:5] %}
+        <tr>
+          <td>{{ e.date }}</td>
+          <td><span class="badge badge-muted">{{ e.category }}</span></td>
+          <td style="color:var(--teal)">{{ e.amount | inr }}</td>
+          <td class="text-sm">{{ e.description or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if expense_records | length > 5 %}
+  <p class="text-sm text-muted" style="margin-top:8px;">Showing 5 of {{ expense_records | length }} records.</p>
+  {% endif %}
+  {% else %}
+  <div class="empty-state" style="padding:24px;">
+    <p>No expense records. <a href="{{ url_for('analytics.add_expense') }}?vehicle_id={{ vehicle.id }}" style="color:var(--teal);">Add expense</a></p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Decision shortcut ────────────────────────────────────── -->
+<div class="card" style="background:linear-gradient(135deg,#0f1929,#111827);">
+  <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="card-title">🎯 Maintain–Repair–Sell Analysis</div>
+      <p class="text-sm text-muted" style="margin-top:4px;">Get an explainable recommendation based on this vehicle's data.</p>
+    </div>
+    <a href="{{ url_for('analytics.vehicle_decision', vehicle_id=vehicle.id) }}" class="btn btn-primary">Analyse →</a>
+  </div>
+</div>
+
+<!-- ── Valuation Audit History ──────────────────────────────── -->
+{% if valuation_history %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📊 Valuation Audit History</div>
+    <span class="badge badge-info" style="font-size:11px;">Persistent Valuation Records</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Original Showroom</th>
+          <th>Market Asking Range</th>
+          <th>Representative Market</th>
+          <th>Estimated Resale</th>
+          <th>Depreciation</th>
+          <th>Method</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vrec in valuation_history %}
+        <tr>
+          <td class="text-xs text-muted">{{ vrec.valuation_date.strftime('%Y-%m-%d %H:%M') if vrec.valuation_date else '—' }}</td>
+          <td>{{ vrec.original_showroom_price | inr if vrec.original_showroom_price else '—' }}</td>
+          <td class="text-xs">
+            {% if vrec.market_asking_price_min and vrec.market_asking_price_max %}
+              {{ vrec.market_asking_price_min | inr }} – {{ vrec.market_asking_price_max | inr }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ vrec.representative_market_price | inr if vrec.representative_market_price else '—' }}</td>
+          <td style="color:var(--teal);font-weight:700;">{{ vrec.estimated_resale_value | inr }}</td>
+          <td class="text-xs">
+            {% if vrec.depreciation_percentage is not none %}
+              -{{ vrec.depreciation_percentage }}%
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td><span class="badge badge-muted" style="font-size:10px;">{{ vrec.valuation_method or 'model' }}</span></td>
+          <td>
+            <span class="badge {% if vrec.confidence_status == 'high' %}badge-healthy{% elif vrec.confidence_status == 'medium' %}badge-attention{% else %}badge-info{% endif %}" style="font-size:10px;">
+              {{ vrec.confidence_status or 'medium' }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

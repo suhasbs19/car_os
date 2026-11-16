@@ -1,0 +1,102 @@
+make,model,variant,generation,model_year,fuel_type,transmission,ex_showroom_price_inr,effective_date,city,source
+Hyundai,Creta,1.5 E,Gen 2 Facelift,2024,Petrol,Manual,1099900,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 EX,Gen 2 Facelift,2024,Petrol,Manual,1217700,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 S,Gen 2 Facelift,2024,Petrol,Manual,1339200,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX,Gen 2 Facelift,2024,Petrol,Manual,1526900,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX (O),Gen 2 Facelift,2024,Petrol,Manual,1723800,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX (O) IVT,Gen 2 Facelift,2024,Petrol,Automatic,1869800,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX Diesel,Gen 2 Facelift,2024,Diesel,Manual,1677000,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX (O) AT Diesel,Gen 2 Facelift,2024,Diesel,Automatic,1999900,2024-01-16,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 E,Gen 2,2022,Petrol,Manual,1044000,2022-04-10,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX,Gen 2,2022,Petrol,Manual,1438000,2022-04-10,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX (O) IVT,Gen 2,2022,Petrol,Automatic,1787000,2022-04-10,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.5 SX Diesel,Gen 2,2022,Diesel,Manual,1578000,2022-04-10,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.6 VTVT Base,Gen 1,2015,Petrol,Manual,859000,2015-07-21,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.6 VTVT S,Gen 1,2015,Petrol,Manual,957000,2015-07-21,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.6 VTVT SX+,Gen 1,2015,Petrol,Manual,1119000,2015-07-21,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,Creta,1.6 CRDi SX+,Gen 1,2015,Diesel,Manual,1267000,2015-07-21,National Ex-Showroom,Hyundai Motor India Archive
+Tata,Nexon EV,Medium Range Creative,Facelift Gen 2,2025,Electric,Automatic,1449000,2025-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,Medium Range Fearless,Facelift Gen 2,2025,Electric,Automatic,1599000,2025-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,Long Range Fearless,Facelift Gen 2,2025,Electric,Automatic,1699000,2025-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,Long Range Empowered,Facelift Gen 2,2025,Electric,Automatic,1799000,2025-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,Long Range Empowered+,Facelift Gen 2,2025,Electric,Automatic,1929000,2025-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,XM Electric,Prime Gen 1,2021,Electric,Automatic,1399000,2021-02-15,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,XZ+ Electric,Prime Gen 1,2021,Electric,Automatic,1535000,2021-02-15,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon EV,XZ+ Lux Electric,Prime Gen 1,2021,Electric,Automatic,1635000,2021-02-15,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon,Smart,Facelift Gen 2,2024,Petrol,Manual,799900,2024-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon,Pure,Facelift Gen 2,2024,Petrol,Manual,969900,2024-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon,Creative,Facelift Gen 2,2024,Petrol,Manual,1099900,2024-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Nexon,Fearless,Facelift Gen 2,2024,Petrol,Manual,1249900,2024-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Honda,City,1.5 V,Gen 5,2022,Petrol,Manual,1129000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 VX,Gen 5,2022,Petrol,Manual,1262000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 ZX,Gen 5,2022,Petrol,Manual,1392000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 V CVT,Gen 5,2022,Petrol,Automatic,1259000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 ZX CVT,Gen 5,2022,Petrol,Automatic,1525000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 V Diesel,Gen 5,2022,Diesel,Manual,1289000,2022-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 V,Gen 5,2021,Petrol,Manual,1099000,2021-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 ZX,Gen 5,2021,Petrol,Manual,1359000,2021-03-01,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 i-VTEC V,Gen 4,2017,Petrol,Manual,999000,2017-02-14,National Ex-Showroom,Honda Cars India
+Honda,City,1.5 i-VTEC ZX,Gen 4,2017,Petrol,Manual,1255000,2017-02-14,National Ex-Showroom,Honda Cars India
+Maruti Suzuki,Swift,LXi,Gen 3,2019,Petrol,Manual,499000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,VXi,Gen 3,2019,Petrol,Manual,598000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,ZXi,Gen 3,2019,Petrol,Manual,658000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,ZXi+,Gen 3,2019,Petrol,Manual,738000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,VDi,Gen 3,2019,Diesel,Manual,687000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,ZDi,Gen 3,2019,Diesel,Manual,758000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,ZDi+,Gen 3,2019,Diesel,Manual,827000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti,Swift,VDi,Gen 3,2019,Diesel,Manual,687000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti,Swift,VXi,Gen 3,2019,Petrol,Manual,598000,2019-01-15,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,VXi,Gen 3 Facelift,2022,Petrol,Manual,682000,2022-01-10,National Ex-Showroom,Maruti Suzuki India Limited
+Maruti Suzuki,Swift,ZXi,Gen 3 Facelift,2022,Petrol,Manual,750000,2022-01-10,National Ex-Showroom,Maruti Suzuki India Limited
+Mahindra,Thar,DI 4x2,Gen 1,2013,Diesel,Manual,495000,2013-03-01,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,DI 4x4,Gen 1,2013,Diesel,Manual,545000,2013-03-01,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,CRDe 4x4,Gen 1,2013,Diesel,Manual,725000,2013-03-01,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,CRDe 4x4 AC,Gen 1,2015,Diesel,Manual,803000,2015-08-01,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,AX Opt 4x4,Gen 2,2021,Diesel,Manual,1280000,2021-01-15,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,LX 4x4 Hard Top,Gen 2,2021,Diesel,Manual,1415000,2021-01-15,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,Thar,LX 4x4 AT Hard Top,Gen 2,2021,Diesel,Automatic,1535000,2021-01-15,National Ex-Showroom,Mahindra & Mahindra Archive
+Toyota,Fortuner,4x2 MT,Gen 2 Facelift,2021,Diesel,Manual,3248000,2021-01-06,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,4x2 AT,Gen 2 Facelift,2021,Diesel,Automatic,3484000,2021-01-06,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,4x4 MT,Gen 2 Facelift,2021,Diesel,Manual,3514000,2021-01-06,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,4x4 AT,Gen 2 Facelift,2021,Diesel,Automatic,3743000,2021-01-06,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,Legender 4x2 AT,Gen 2 Facelift,2021,Diesel,Automatic,3758000,2021-01-06,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,4x2 AT,Gen 2,2017,Diesel,Automatic,2999000,2017-03-10,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Fortuner,4x4 AT,Gen 2,2017,Diesel,Automatic,3186000,2017-03-10,National Ex-Showroom,Toyota Kirloskar Motor
+Maruti Suzuki,Baleno,Sigma,Gen 2,2023,Petrol,Manual,661000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti Suzuki,Baleno,Delta,Gen 2,2023,Petrol,Manual,745000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti Suzuki,Baleno,Zeta,Gen 2,2023,Petrol,Manual,838000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti Suzuki,Baleno,Alpha,Gen 2,2023,Petrol,Manual,933000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti Suzuki,Baleno,Delta CNG,Gen 2,2023,CNG,Manual,835000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti Suzuki,Baleno,Zeta CNG,Gen 2,2023,CNG,Manual,928000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Maruti,Baleno,Delta CNG,Gen 2,2023,CNG,Manual,835000,2023-02-15,National Ex-Showroom,Maruti Suzuki Nexa Archive
+Volkswagen,Polo,1.0 MPI Trendline,Gen 5,2018,Petrol,Manual,541000,2018-03-01,National Ex-Showroom,Volkswagen India Archive
+Volkswagen,Polo,1.0 MPI Comfortline,Gen 5,2018,Petrol,Manual,610000,2018-03-01,National Ex-Showroom,Volkswagen India Archive
+Volkswagen,Polo,1.0 MPI Highline Plus,Gen 5,2018,Petrol,Manual,724000,2018-03-01,National Ex-Showroom,Volkswagen India Archive
+Volkswagen,Polo,1.0 TSI Highline Plus,Gen 5,2020,Petrol,Manual,808000,2020-05-15,National Ex-Showroom,Volkswagen India Archive
+Volkswagen,Polo,1.5 TDI Comfortline,Gen 5,2018,Diesel,Manual,710000,2018-03-01,National Ex-Showroom,Volkswagen India Archive
+Volkswagen,Polo,1.2 GT TSI,Gen 5,2018,Petrol,Automatic,920000,2018-03-01,National Ex-Showroom,Volkswagen India Archive
+Kia,Seltos,HTE,Gen 1,2022,Petrol,Manual,1019000,2022-01-15,National Ex-Showroom,Kia India Archive
+Kia,Seltos,HTK,Gen 1,2022,Petrol,Manual,1125000,2022-01-15,National Ex-Showroom,Kia India Archive
+Kia,Seltos,HTX,Gen 1,2022,Petrol,Manual,1415000,2022-01-15,National Ex-Showroom,Kia India Archive
+Kia,Seltos,GTX+ AT,Gen 1,2022,Petrol,Automatic,1810000,2022-01-15,National Ex-Showroom,Kia India Archive
+Tata,Punch,Pure,Gen 1,2022,Petrol,Manual,599000,2022-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Punch,Adventure,Gen 1,2022,Petrol,Manual,689000,2022-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Punch,Accomplished,Gen 1,2022,Petrol,Manual,769000,2022-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Tata,Punch,Creative,Gen 1,2022,Petrol,Manual,889000,2022-01-10,National Ex-Showroom,Tata Motors Passenger Vehicles
+Skoda,Slavia,Active,Gen 1,2022,Petrol,Manual,1069000,2022-02-28,National Ex-Showroom,Skoda Auto India Archive
+Skoda,Slavia,Ambition,Gen 1,2022,Petrol,Manual,1239000,2022-02-28,National Ex-Showroom,Skoda Auto India Archive
+Skoda,Slavia,Style,Gen 1,2022,Petrol,Manual,1399000,2022-02-28,National Ex-Showroom,Skoda Auto India Archive
+Toyota,Innova Crysta,2.4 G MT,Gen 2,2018,Diesel,Manual,1465000,2018-01-10,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Innova Crysta,2.4 VX MT,Gen 2,2018,Diesel,Manual,1780000,2018-01-10,National Ex-Showroom,Toyota Kirloskar Motor
+Toyota,Innova Crysta,2.8 ZX AT,Gen 2,2018,Diesel,Automatic,2215000,2018-01-10,National Ex-Showroom,Toyota Kirloskar Motor
+Maruti Suzuki,Brezza,LXi,Gen 2,2022,Petrol,Manual,799000,2022-06-30,National Ex-Showroom,Maruti Suzuki Arena Archive
+Maruti Suzuki,Brezza,VXi,Gen 2,2022,Petrol,Manual,946000,2022-06-30,National Ex-Showroom,Maruti Suzuki Arena Archive
+Maruti Suzuki,Brezza,ZXi,Gen 2,2022,Petrol,Manual,1086000,2022-06-30,National Ex-Showroom,Maruti Suzuki Arena Archive
+Maruti Suzuki,Brezza,ZXi+,Gen 2,2022,Petrol,Manual,1230000,2022-06-30,National Ex-Showroom,Maruti Suzuki Arena Archive
+Hyundai,i20,Magna,Gen 3,2021,Petrol,Manual,680000,2021-01-15,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,i20,Sportz,Gen 3,2021,Petrol,Manual,760000,2021-01-15,National Ex-Showroom,Hyundai Motor India Archive
+Hyundai,i20,Asta (O),Gen 3,2021,Petrol,Manual,920000,2021-01-15,National Ex-Showroom,Hyundai Motor India Archive
+Mahindra,XUV700,MX 5-Str,Gen 1,2022,Petrol,Manual,1318000,2022-01-10,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,XUV700,AX5 7-Str,Gen 1,2022,Petrol,Manual,1689000,2022-01-10,National Ex-Showroom,Mahindra & Mahindra Archive
+Mahindra,XUV700,AX7 Luxury AT,Gen 1,2022,Diesel,Automatic,2298000,2022-01-10,National Ex-Showroom,Mahindra & Mahindra Archive
+

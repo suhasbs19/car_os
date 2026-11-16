@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "title": "CAR OS - Powertrain-Differentiated OBD-II Parameter Reference Knowledge Base",
+    "version": "1.0.0",
+    "source_provenance": "SAE J1979 / ISO 15031 Standards, carOBD Empirical Telemetry, and CAR OS Automotive Engineering Knowledge Base",
+    "document_note": "Reference ranges compiled to fulfill Section D requirements. Note: OBD_Details_All_Cars.pdf was not present on disk; parameters are grounded in industry standards and empirical dataset telemetry.",
+    "effective_date": "2026-10-28",
+    "disclaimer": "OBD-II readings and reference ranges indicate electronic sensor parameters and circuit conditions. Deviations represent diagnostic indicators requiring physical verification by a certified technician, not conclusive proof of mechanical component failure."
+  },
+  "powertrains": [
+    "Petrol",
+    "CNG",
+    "Diesel",
+    "Hybrid",
+    "Electric"
+  ],
+  "parameters": {
+    "engine_rpm": {
+      "pid": "0x0C",
+      "name": "Engine RPM",
+      "unit": "RPM",
+      "description": "Rotational speed of engine crankshaft.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": true,
+        "Hybrid": true,
+        "Electric": false
+      },
+      "ev_note": "Not applicable to Electric Vehicles. EVs do not possess an internal combustion crankshaft; motor RPM is communicated via proprietary BMS/inverter CAN IDs, not standard SAE J1979 PID 0x0C.",
+      "hybrid_note": "May read 0 RPM during EV drive mode or regenerative braking while vehicle is moving; this is normal hybrid operation.",
+      "ranges": {
+        "Petrol": { "idle_min": 650, "idle_max": 900, "normal_min": 600, "normal_max": 6500, "redline": 6800 },
+        "CNG": { "idle_min": 700, "idle_max": 950, "normal_min": 650, "normal_max": 6200, "redline": 6500 },
+        "Diesel": { "idle_min": 600, "idle_max": 850, "normal_min": 550, "normal_max": 4500, "redline": 4800 },
+        "Hybrid": { "idle_min": 0, "idle_max": 1000, "normal_min": 0, "normal_max": 5500, "redline": 6000 },
+        "Electric": null
+      }
+    },
+    "vehicle_speed_kmh": {
+      "pid": "0x0D",
+      "name": "Vehicle Speed",
+      "unit": "km/h",
+      "description": "Road speed calculated from transmission output or ABS wheel sensors.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": true,
+        "Hybrid": true,
+        "Electric": true
+      },
+      "ranges": {
+        "Petrol": { "normal_min": 0, "normal_max": 160, "max_safe": 200 },
+        "CNG": { "normal_min": 0, "normal_max": 140, "max_safe": 180 },
+        "Diesel": { "normal_min": 0, "normal_max": 160, "max_safe": 200 },
+        "Hybrid": { "normal_min": 0, "normal_max": 160, "max_safe": 190 },
+        "Electric": { "normal_min": 0, "normal_max": 150, "max_safe": 180 }
+      }
+    },
+    "coolant_temp_c": {
+      "pid": "0x05",
+      "name": "Engine Coolant Temperature",
+      "unit": "°C",
+      "description": "Temperature of engine liquid coolant jacket.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": true,
+        "Hybrid": true,
+        "Electric": false
+      },
+      "ev_note": "Not applicable to Electric Vehicles. EV thermal management uses dedicated high-voltage battery coolant loops (typically 20°C - 35°C) and power electronics cooling, not internal combustion engine coolant (PID 0x05).",
+      "ranges": {
+        "Petrol": { "cold_min": 0, "operating_min": 82, "operating_max": 98, "warning_high": 105, "critical_high": 115 },
+        "CNG": { "cold_min": 0, "operating_min": 84, "operating_max": 99, "warning_high": 106, "critical_high": 115 },
+        "Diesel": { "cold_min": 0, "operating_min": 78, "operating_max": 92, "warning_high": 102, "critical_high": 112 },
+        "Hybrid": { "cold_min": 0, "operating_min": 75, "operating_max": 95, "warning_high": 104, "critical_high": 114 },
+        "Electric": null
+      }
+    },
+    "battery_voltage": {
+      "pid": "0x42",
+      "name": "Auxiliary / Control Module Voltage",
+      "unit": "V",
+      "description": "12-Volt low-voltage electrical accessory and ECU bus voltage.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": true,
+        "Hybrid": true,
+        "Electric": true
+      },
+      "ev_note": "CRITICAL EV/HYBRID SAFEGUARD: This parameter measures the 12V auxiliary lead-acid/LFP battery that powers lights, displays, and ECUs. It does NOT measure or represent the High-Voltage (300V-450V) Traction Battery State of Health (SOH) or State of Charge (SOC).",
+      "ranges": {
+        "Petrol": { "resting_min": 12.2, "resting_max": 12.8, "running_min": 13.6, "running_max": 14.8, "critical_low": 11.6, "overvoltage": 15.2 },
+        "CNG": { "resting_min": 12.2, "resting_max": 12.8, "running_min": 13.6, "running_max": 14.8, "critical_low": 11.6, "overvoltage": 15.2 },
+        "Diesel": { "resting_min": 12.4, "resting_max": 12.8, "running_min": 13.7, "running_max": 14.8, "critical_low": 11.8, "overvoltage": 15.2 },
+        "Hybrid": { "resting_min": 12.2, "resting_max": 12.8, "running_min": 13.5, "running_max": 14.6, "critical_low": 11.6, "overvoltage": 15.0 },
+        "Electric": { "resting_min": 12.2, "resting_max": 12.8, "running_min": 13.5, "running_max": 14.5, "critical_low": 11.6, "overvoltage": 15.0 }
+      }
+    },
+    "engine_load_pct": {
+      "pid": "0x04",
+      "name": "Calculated Engine Load",
+      "unit": "%",
+      "description": "Percentage of peak available engine torque being utilized.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": true,
+        "Hybrid": true,
+        "Electric": false
+      },
+      "ev_note": "Not applicable to Electric Vehicles. EV electric motor torque is managed by inverter field-oriented control, not SAE calculated load.",
+      "ranges": {
+        "Petrol": { "idle_min": 15, "idle_max": 35, "cruise_min": 25, "cruise_max": 65, "max_load": 100 },
+        "CNG": { "idle_min": 18, "idle_max": 40, "cruise_min": 30, "cruise_max": 70, "max_load": 100 },
+        "Diesel": { "idle_min": 18, "idle_max": 38, "cruise_min": 30, "cruise_max": 75, "max_load": 100 },
+        "Hybrid": { "idle_min": 0, "idle_max": 40, "cruise_min": 20, "cruise_max": 70, "max_load": 100 },
+        "Electric": null
+      }
+    },
+    "throttle_pos_pct": {
+      "pid": "0x11",
+      "name": "Absolute Throttle Position",
+      "unit": "%",
+      "description": "Angle of engine intake throttle plate.",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": false,
+        "Hybrid": true,
+        "Electric": false
+      },
+      "diesel_note": "Most modern diesels are unthrottled during combustion; PID 0x11 indicates the anti-shudder/EGR mixing flap position only.",
+      "ev_note": "EVs do not have a throttle plate. Driver demand is measured by Accelerator Pedal Position (APP), not throttle plate position.",
+      "ranges": {
+        "Petrol": { "idle_min": 10, "idle_max": 22, "cruise_min": 20, "cruise_max": 60, "wot": 100 },
+        "CNG": { "idle_min": 12, "idle_max": 24, "cruise_min": 22, "cruise_max": 65, "wot": 100 },
+        "Diesel": null,
+        "Hybrid": { "idle_min": 0, "idle_max": 25, "cruise_min": 15, "cruise_max": 65, "wot": 100 },
+        "Electric": null
+      }
+    },
+    "fuel_system_status": {
+      "pid": "0x03",
+      "name": "Fuel System Control Loop Status",
+      "unit": "Status String",
+      "description": "ECU feedback loop control status (Closed Loop using O2 sensors vs Open Loop).",
+      "applicability": {
+        "Petrol": true,
+        "CNG": true,
+        "Diesel": false,
+        "Hybrid": true,
+        "Electric": false
+      },
+      "ev_note": "Not applicable to Electric Vehicles.",
+      "valid_states": [
+        "Closed Loop (Using O2 sensor feedback)",
+        "Open Loop (Engine cold / Warming up)",
+        "Open Loop (High load / Wide Open Throttle)",
+        "Open Loop (System fault detected)"
+      ]
+    }
+  }
+}
+

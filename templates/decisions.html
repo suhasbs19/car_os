@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Maintain–Repair–Sell{% endblock %}
+{% block page_title %}Maintain–Repair–Sell{% endblock %}
+{% block page_subtitle %}Explainable ownership decision support for all vehicles{% endblock %}
+{% block header_actions %}<a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">← Vehicles</a>{% endblock %}
+
+{% block content %}
+
+<!-- Header Status -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+  <span class="badge badge-teal">Multi-Factor Decision Support</span>
+  <span class="text-xs text-muted">Rule-based recommendations synthesizing condition index, cumulative repair-to-value ratio, diagnostic telemetry, and operating economy.</span>
+</div>
+
+{% if results %}
+{% for item in results %}
+{% set v = item.vehicle %}
+{% set d = item.decision %}
+{% set rec = d.recommendation | lower %}
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🚘 {{ v.make }} {{ v.model }}
+        <span class="text-mono text-muted" style="font-size:13px;margin-left:8px;">{{ v.registration_number }}</span>
+      </div>
+      <div class="text-sm text-muted" style="margin-top:4px;">{{ v.fuel_type }} · {{ v.manufacturing_year }} · {{ '{:,.0f}'.format(v.odometer_km) }} km</div>
+    </div>
+    <div style="text-align:right;">
+      {% if v.health_score is not none %}
+      <span class="badge {% if v.health_status == 'Healthy' %}badge-healthy{% elif v.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+        {{ v.health_score | round2 }} / 100 · {{ v.health_status }}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="decision-card {{ rec }}">
+    <div class="decision-label">
+      {% if rec == 'maintain' %}✅ Maintain
+      {% elif rec == 'repair' %}🔧 Repair
+      {% elif rec == 'sell' %}💱 Sell
+      {% else %}❓ {{ d.recommendation }}{% endif %}
+    </div>
+    <div class="text-sm text-muted" style="margin-bottom:8px;">
+      Confidence: <strong>{{ d.confidence }}</strong>
+      &nbsp;|&nbsp; Signals: Maintain={{ d.signal_counts.maintain if d.signal_counts else '?' }},
+      Repair={{ d.signal_counts.repair if d.signal_counts else '?' }},
+      Sell={{ d.signal_counts.sell if d.signal_counts else '?' }}
+    </div>
+    {% if d.confidence_rationale %}
+    <div class="text-xs text-muted" style="margin-bottom:10px;">
+      ℹ️ {{ d.confidence_rationale }}
+    </div>
+    {% endif %}
+
+    {% if d.reasons %}
+    <ul class="decision-reasons">
+      {% for reason in d.reasons %}
+      <li>{{ reason }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if d.warnings %}
+    <ul class="warning-list" style="margin-top:10px;">
+      {% for w in d.warnings %}
+      <li>⚠️ {{ w }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{{ url_for('analytics.vehicle_decision', vehicle_id=v.id) }}" class="btn btn-secondary btn-sm">Full Analysis →</a>
+    <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-secondary btn-sm">Vehicle Details</a>
+  </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🎯</div>
+  <h3>No vehicles to analyse</h3>
+  <p>Add vehicles and log maintenance, fuel, and expense records to generate recommendations.</p>
+  <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary">＋ Add Vehicle</a>
+</div>
+{% endif %}
+
+{% endblock %}

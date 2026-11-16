@@ -1,0 +1,58 @@
+# CAR OS – Files to ignore in version control
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask instance / SQLite database files (contains local operational/user data)
+instance/*.db
+instance/*.sqlite
+instance/*.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+!instance/.gitkeep
+
+# Secrets and environment configuration
+.env
+.env.*
+*.secret
+
+# IDE and Editor artifacts
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*.swp
+
+# Logs
+*.log
+
+# Test and coverage artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Experiment artifacts (large benchmark models)
+experiments/new_datasets_eval/*.joblib
+ml/saved_models/backup_pre_indian_integration/
+

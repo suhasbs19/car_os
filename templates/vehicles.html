@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Vehicles{% endblock %}
+{% block page_title %}Vehicles{% endblock %}
+{% block page_subtitle %}Fleet registry — all registered vehicles{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary btn-sm">＋ Add Vehicle</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Filters ──────────────────────────────────────────────── -->
+<form method="GET" action="{{ url_for('vehicles.list_vehicles') }}">
+  <div class="filters-bar">
+    <div class="form-group">
+      <label for="search-input">Search</label>
+      <input type="text" id="search-input" name="search" value="{{ search }}" placeholder="Make, model, or registration…" />
+    </div>
+    <div class="form-group">
+      <label for="fuel-filter">Fuel Type</label>
+      <select id="fuel-filter" name="fuel_type">
+        <option value="">All Types</option>
+        {% for ft in fuel_types %}
+        <option value="{{ ft }}" {% if fuel_filter == ft %}selected{% endif %}>{{ ft }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="status-filter">Health Status</label>
+      <select id="status-filter" name="status">
+        <option value="">All Statuses</option>
+        <option value="Healthy"   {% if status_filter == 'Healthy'   %}selected{% endif %}>Healthy</option>
+        <option value="Attention" {% if status_filter == 'Attention' %}selected{% endif %}>Attention</option>
+        <option value="Critical"  {% if status_filter == 'Critical'  %}selected{% endif %}>Critical</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- ── Vehicle Table ────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🚘 Registered Vehicles
+      <span class="badge badge-teal" style="margin-left:8px;">{{ vehicles | length }}</span>
+    </div>
+  </div>
+
+  {% if vehicles %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Registration</th>
+        <th>Make &amp; Model</th>
+        <th>Year</th>
+        <th>Fuel</th>
+        <th>Odometer</th>
+        <th>Health</th>
+        <th>Resale*</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for v in vehicles %}
+        <tr>
+          <td class="primary text-mono">{{ v.registration_number }}</td>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" style="color:var(--text-primary);text-decoration:none;font-weight:600;">
+              {{ v.make }} {{ v.model }}
+            </a>
+          </td>
+          <td>{{ v.manufacturing_year }}</td>
+          <td><span class="badge badge-info">{{ v.fuel_type }}</span></td>
+          <td>{{ '{:,.0f}'.format(v.odometer_km) }} km</td>
+          <td>
+            {% if v.health_score is not none %}
+            <span class="badge {% if v.health_status == 'Healthy' %}badge-healthy{% elif v.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+              {{ v.health_score | round2 }} · {{ v.health_status }}
+            </span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-mono" style="color:var(--teal);">{{ v.estimated_resale_value | inr }}</td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-secondary btn-sm">View</a>
+              <button type="button" class="btn btn-danger btn-sm"
+                onclick="openDeleteModal('del-{{ v.id }}', '{{ v.make }} {{ v.model }} ({{ v.registration_number }})')">
+                Delete
+              </button>
+              <form id="del-{{ v.id }}" action="{{ url_for('vehicles.delete_vehicle', vehicle_id=v.id) }}" method="POST" style="display:none;"></form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🚘</div>
+    <h3>No vehicles found</h3>
+    <p>{% if search or fuel_filter or status_filter %}Try clearing the filters.{% else %}Add your first vehicle to start.{% endif %}</p>
+    <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary">＋ Add Vehicle</a>
+  </div>
+  {% endif %}
+</div>
+
+<p class="text-xs text-muted">* Resale values are illustrative prototype estimates, not live market valuations.</p>
+{% endblock %}

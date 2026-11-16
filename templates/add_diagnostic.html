@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Add Diagnostic Record{% endblock %}
+{% block page_title %}Add Diagnostic Record{% endblock %}
+{% block page_subtitle %}Manual OBD or diagnostic data entry{% endblock %}
+{% block header_actions %}<a href="{{ url_for('analytics.diagnostics') }}" class="btn btn-secondary btn-sm">← Back</a>{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+  <div class="card-header">
+    <div class="card-title">🔍 New Diagnostic Record</div>
+    <span class="badge badge-muted">Manual Entry</span>
+  </div>
+
+  <div class="disclaimer" style="margin-bottom:16px;">
+    <strong>ℹ️</strong> No live OBD connection. Enter data manually from an OBD reader, scanner report, or workshop printout.
+  </div>
+
+  <form method="POST" action="{{ url_for('analytics.add_diagnostic') }}" novalidate>
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="vehicle_id">Vehicle <span class="req">*</span></label>
+        <select id="vehicle_id" name="vehicle_id" required>
+          <option value="">Select vehicle…</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if form_data.get('vehicle_id')|string == v.id|string %}selected{% endif %}>
+            {{ v.registration_number }} – {{ v.make }} {{ v.model }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Date <span class="req">*</span></label>
+        <input type="date" id="date" name="date"
+               value="{{ form_data.get('date', '') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="data_source">Data Source</label>
+        <select id="data_source" name="data_source">
+          <option value="Manual">Manual Entry</option>
+          <option value="OBD Reader">OBD Reader (Imported)</option>
+          <option value="Workshop Report">Workshop Report</option>
+          <option value="CSV Import">CSV Import</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="dtc_code">DTC Code (optional)</label>
+        <input type="text" id="dtc_code" name="dtc_code"
+               value="{{ form_data.get('dtc_code', '') }}"
+               placeholder="e.g. P0300, P0420…" style="text-transform:uppercase;" />
+        <span class="form-hint">Diagnostic Trouble Code from OBD scanner.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="parameter_name">Parameter Name (optional)</label>
+        <input type="text" id="parameter_name" name="parameter_name"
+               value="{{ form_data.get('parameter_name', '') }}"
+               placeholder="e.g. Engine RPM, Coolant Temp…" />
+      </div>
+
+      <div class="form-group">
+        <label for="parameter_value">Parameter Value (optional)</label>
+        <input type="text" id="parameter_value" name="parameter_value"
+               value="{{ form_data.get('parameter_value', '') }}"
+               placeholder="e.g. 800 RPM, 95°C…" />
+      </div>
+
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="3"
+                placeholder="Context, observations, mechanic notes…">{{ form_data.get('notes', '') }}</textarea>
+    </div>
+
+    <div class="form-actions" style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary">✓ Save Record</button>
+      <a href="{{ url_for('analytics.diagnostics') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

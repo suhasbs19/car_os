@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block title %}Vehicle Valuation{% endblock %}
+{% block page_title %}Vehicle Valuation{% endblock %}
+{% block page_subtitle %}Indian secondary market resale valuation, showroom benchmarks, and market comparables{% endblock %}
+{% block header_actions %}<a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">← Vehicles</a>{% endblock %}
+
+{% block content %}
+
+<!-- Status indicator -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+  <span class="badge badge-teal">🇮🇳 Tri-Value Valuation Architecture</span>
+  <span class="badge badge-info">1. Showroom Price · 2. Market Comparables · 3. ML Resale Regressor</span>
+  <span class="text-xs text-muted">Ex-showroom pricing grounded in authorized Indian retail records; market listings trimmed via IQR; resale value predicted via CarDekho Gradient Boosting.</span>
+</div>
+
+{% if valuations %}
+
+<!-- Fleet combined totals: 3 distinct values -->
+<div class="grid-3" style="margin-bottom:20px;">
+  <div class="card metric-card" style="margin-bottom:0;border-top:3px solid #3b82f6;">
+    <div class="metric-label" style="display:flex;justify-content:space-between;">
+      <span>1. Total Original Showroom</span>
+      <span class="badge badge-secondary" style="font-size:9px;">Ex-Showroom</span>
+    </div>
+    <div class="metric-value" style="font-size:26px;color:var(--text-primary);">{{ total_showroom_value | inr }}</div>
+    <div class="text-xs text-muted" style="margin-top:4px;">Original acquisition benchmark before taxes/fees</div>
+  </div>
+
+  <div class="card metric-card" style="margin-bottom:0;border-top:3px solid #00cfff;">
+    <div class="metric-label" style="display:flex;justify-content:space-between;">
+      <span>2. Total Current Market</span>
+      <span class="badge badge-info" style="font-size:9px;">Asking Prices</span>
+    </div>
+    <div class="metric-value" style="font-size:26px;color:#00cfff;">{{ total_market_value | inr }}</div>
+    <div class="text-xs text-muted" style="margin-top:4px;">Median asking value across comparable listings</div>
+  </div>
+
+  <div class="card metric-card" style="margin-bottom:0;border-top:3px solid var(--teal);">
+    <div class="metric-label" style="display:flex;justify-content:space-between;">
+      <span>3. Total Estimated Resale</span>
+      <span class="badge badge-teal" style="font-size:9px;">Condition Adjusted</span>
+    </div>
+    <div class="metric-value" style="font-size:26px;color:var(--teal);">{{ total_fleet_value | inr }}</div>
+    <div class="text-xs text-muted" style="margin-top:4px;">Specific vehicle condition &amp; mileage adjusted</div>
+  </div>
+</div>
+
+<!-- Comparison Chart -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📊 Showroom vs. Market vs. Estimated Resale Comparison</div>
+    <span class="text-xs text-muted">Values in Indian Rupees (₹)</span>
+  </div>
+  <div class="chart-container" style="height:320px;">
+    <canvas id="valuationChart"></canvas>
+  </div>
+</div>
+
+<!-- Fleet Valuation Matrix Table -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📋 Fleet Valuation Summary Matrix</div>
+    <span class="badge badge-teal" style="font-size:11px;">{{ valuations | length }} Vehicles Assessed</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Vehicle</th>
+          <th>Variant &amp; Year</th>
+          <th>Original Showroom Price</th>
+          <th>Current Market Price</th>
+          <th>Estimated Resale Value</th>
+          <th>Depreciation</th>
+          <th>Engine / Source</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for val in valuations %}
+        {% set v = val.vehicle %}
+        <tr>
+          <td>
+            <div style="font-weight:600;">{{ v.make }} {{ v.model }}</div>
+            <div class="text-mono text-xs text-muted">{{ v.registration_number }}</div>
+          </td>
+          <td class="text-sm">
+            <span style="color:var(--teal);">{{ v.variant or 'Base/Standard' }}</span>
+            <div class="text-xs text-muted">{{ v.manufacturing_year }} · {{ v.transmission or 'Manual' }}</div>
+          </td>
+          <td>
+            {% if val.original_showroom_price %}
+              <strong>{{ val.original_showroom_price | inr }}</strong>
+            {% else %}
+              <span class="text-muted text-xs">Price unavailable</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if val.current_market_price %}
+              <strong style="color:#00cfff;">{{ val.current_market_price | inr }}</strong>
+              {% if val.market_asking_range and val.market_asking_range[0] %}
+              <div class="text-xs text-muted">{{ val.market_asking_range[0] | inr }} – {{ val.market_asking_range[1] | inr }} ({{ val.comparable_listings_count }} comp)</div>
+              {% endif %}
+            {% else %}
+              <span class="text-muted text-xs">Market data unavailable</span>
+            {% endif %}
+          </td>
+          <td>
+            <strong style="color:var(--teal);font-size:15px;">{{ val.estimated_value | inr }}</strong>
+            <div class="text-xs text-muted">{{ val.estimated_value | lakh }}</div>
+          </td>
+          <td class="text-sm">
+            {% if val.depreciation_percentage is not none %}
+              <span class="badge badge-warning" style="font-size:10px;">-{{ val.depreciation_percentage }}%</span>
+              <div class="text-xs text-muted">{{ val.depreciation_amount | inr }}</div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="text-xs">
+            <span class="badge {% if val.confidence_status == 'high' %}badge-healthy{% elif val.confidence_status == 'medium' %}badge-attention{% else %}badge-info{% endif %}" style="font-size:9px;">
+              {{ val.valuation_method or 'model' }} ({{ val.confidence_status or 'medium' }})
+            </span>
+          </td>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" class="btn btn-secondary btn-sm" style="font-size:11px;">View →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Per-vehicle detailed valuation cards -->
+<div class="card-title" style="margin:24px 0 12px 4px;">🔍 Detailed Vehicle Valuations</div>
+
+{% for val in valuations %}
+{% set v = val.vehicle %}
+<div class="card">
+  <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+    <div>
+      <div class="card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span>🚘 {{ v.make }} {{ v.model }}</span>
+        {% if v.variant %}<span class="badge badge-info" style="font-size:10px;">{{ v.variant }}</span>{% endif %}
+        <span class="text-mono text-muted" style="font-size:13px;">{{ v.registration_number }}</span>
+        <span class="badge {% if val.confidence_status == 'high' %}badge-healthy{% elif val.confidence_status == 'medium' %}badge-attention{% else %}badge-info{% endif %}" style="font-size:10px;">
+          {{ val.valuation_method }} · {{ val.confidence_status }} confidence
+        </span>
+      </div>
+      {% if val.price_range_inr %}
+      <div class="text-xs text-muted" style="margin-top:4px;">
+        Expected Selling Band: <strong>{{ val.price_range_inr[0] | inr }} – {{ val.price_range_inr[1] | inr }}</strong>
+      </div>
+      {% endif %}
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:24px;font-weight:800;color:var(--teal);">{{ val.estimated_value | inr }}</div>
+      <div class="text-xs text-muted">{{ val.estimated_value | lakh }}</div>
+    </div>
+  </div>
+
+  <!-- 3 distinct values row -->
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
+      <div class="text-xs text-muted">1. Original Showroom Price</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text-primary);margin-top:2px;">
+        {% if val.original_showroom_price %}
+          {{ val.original_showroom_price | inr }}
+        {% else %}
+          <span class="text-muted" style="font-size:13px;">Price unavailable</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        Year: {{ v.manufacturing_year }} · Ex-showroom
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:10px 14px;">
+      <div class="text-xs text-muted">2. Current Market Price</div>
+      <div style="font-size:17px;font-weight:700;color:#00cfff;margin-top:2px;">
+        {% if val.current_market_price %}
+          {{ val.current_market_price | inr }}
+        {% else %}
+          <span class="text-muted" style="font-size:13px;">Market data unavailable</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        {% if val.comparable_listings_count %}{{ val.comparable_listings_count }} comparable listings{% else %}Listing estimate{% endif %}
+      </div>
+    </div>
+
+    <div style="background:rgba(32,201,151,0.06);border:1px solid rgba(32,201,151,0.25);border-radius:6px;padding:10px 14px;">
+      <div class="text-xs" style="color:var(--teal);font-weight:600;">3. Estimated Resale Value</div>
+      <div style="font-size:17px;font-weight:800;color:var(--teal);margin-top:2px;">
+        {{ val.estimated_value | inr }}
+      </div>
+      <div class="text-xs text-muted" style="font-size:10px;margin-top:2px;">
+        {% if val.depreciation_percentage is not none %}Depreciation: -{{ val.depreciation_percentage }}%{% else %}Condition adjusted{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="factor-row">
+        <span class="factor-label">Valuation Engine</span>
+        <span class="factor-value">{{ val.valuation_source }}</span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Base Reference Price</span>
+        <span class="factor-value">{{ val.base_price | inr }}
+          {% if val.is_known_model %}
+          <span class="badge badge-teal" style="font-size:10px;margin-left:6px;">Known Model</span>
+          {% else %}
+          <span class="badge badge-attention" style="font-size:10px;margin-left:6px;">Segment Default</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Vehicle Age</span>
+        <span class="factor-value">{{ val.factors.age_years }} years ({{ v.manufacturing_year }}) · {{ '%.2f' | format(val.factors.age_factor) }}×</span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Odometer Reading</span>
+        <span class="factor-value">{{ '{:,.0f}'.format(v.odometer_km) }} km · {{ '%.4f' | format(val.factors.mileage_factor) }}×</span>
+      </div>
+    </div>
+    <div>
+      <div class="factor-row">
+        <span class="factor-label">Fuel &amp; Transmission</span>
+        <span class="factor-value"><span class="badge badge-info">{{ v.fuel_type }}</span> · {{ v.transmission or 'Manual' }}</span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Vehicle Health Score</span>
+        <span class="factor-value">
+          {% if v.health_score is not none %}
+          <span class="badge {% if v.health_status == 'Healthy' %}badge-healthy{% elif v.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+            {{ v.health_score | round2 }} / 100 · {{ v.health_status }}
+          </span>
+          {% else %}N/A{% endif %}
+        </span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Condition Multiplier</span>
+        <span class="factor-value">{{ '%.4f' | format(val.factors.condition_factor) }}×</span>
+      </div>
+      <div class="factor-row">
+        <span class="factor-label">Market Asking Range</span>
+        <span class="factor-value">
+          {% if val.market_asking_range and val.market_asking_range[0] %}
+            {{ val.market_asking_range[0] | inr }} – {{ val.market_asking_range[1] | inr }}
+          {% else %}
+            —
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  {% if val.fallback_reason %}
+  <div style="margin-top:12px;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;color:var(--text-muted);">
+    ℹ️ <strong>Valuation Coverage Note:</strong> {{ val.fallback_reason }}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">💰</div>
+  <h3>No vehicles to value</h3>
+  <p>Add vehicles first to see valuation estimates.</p>
+  <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary">＋ Add Vehicle</a>
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:16px;padding:14px 20px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:16px;">ℹ️</span>
+    <span class="text-xs text-muted">
+      <strong>Methodology Note:</strong> CAR OS implements a tri-tier valuation model. <strong>Original Showroom Price</strong> reflects the vehicle's ex-showroom retail price at the time of purchase in India (excluding RTO registration, road tax, and insurance). <strong>Current Market Price</strong> represents the median asking price derived from recent comparable secondary market listings (trimmed of IQR outliers). <strong>Estimated Resale Value</strong> reflects the predicted transaction value adjusted for vehicle age, cumulative mileage, service history, and health scoring.
+    </span>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if valuations %}
+<script>
+  const vLabels = {{ valuations | map(attribute='vehicle') | map(attribute='registration_number') | list | tojson }};
+  const showroomValues = {{ valuations | map(attribute='original_showroom_price') | map('default', 0) | list | tojson }};
+  const marketValues = {{ valuations | map(attribute='current_market_price') | map('default', 0) | list | tojson }};
+  const resaleValues = {{ valuations | map(attribute='estimated_value') | list | tojson }};
+
+  if (typeof renderTriValuationChart === 'function') {
+    renderTriValuationChart('valuationChart', vLabels, showroomValues, marketValues, resaleValues);
+  } else {
+    renderValuationChart('valuationChart', vLabels, resaleValues);
+  }
+</script>
+{% endif %}
+{% endblock %}

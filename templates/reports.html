@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Fleet Reports{% endblock %}
+{% block page_subtitle %}Per-vehicle cost and usage summary{% endblock %}
+{% block header_actions %}<a href="{{ url_for('analytics.dashboard') }}" class="btn btn-secondary btn-sm">← Dashboard</a>{% endblock %}
+
+{% block content %}
+
+{% if vehicle_reports %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📋 Fleet Cost Report</div>
+    <span class="text-sm text-muted">All-time summary per vehicle</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Vehicle</th>
+        <th>Health</th>
+        <th>Maintenance Records</th>
+        <th>Maintenance Cost</th>
+        <th>Fuel Records</th>
+        <th>Fuel Cost</th>
+        <th>Other Expenses*</th>
+        <th>Total Cost of Ownership (TCO)</th>
+        <th>Distance</th>
+        <th>Cost/km</th>
+      </tr></thead>
+      <tbody>
+        {% for r in vehicle_reports %}
+        {% set v = r.vehicle %}
+        <tr>
+          <td class="primary">
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" style="color:var(--teal);text-decoration:none;">
+              {{ v.registration_number }}<br>
+              <span class="text-sm text-muted">{{ v.make }} {{ v.model }}</span>
+            </a>
+          </td>
+          <td>
+            {% if v.health_score is not none %}
+            <span class="badge {% if v.health_status == 'Healthy' %}badge-healthy{% elif v.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+              {{ v.health_score | round2 }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ r.maint_count }}</td>
+          <td style="color:var(--teal)">{{ r.total_maint_cost | inr }}</td>
+          <td>{{ r.fuel_records }}</td>
+          <td style="color:var(--attention)">{{ r.total_fuel_cost | inr }}</td>
+          <td style="color:var(--text-primary);font-weight:600;">
+            {{ r.total_expense | inr }}
+            {% if r.linked_maint_expenses > 0 %}
+            <span class="text-xs text-muted" title="₹{{ r.linked_maint_expenses | inr }} auto-linked maintenance excluded from this column">(deduped)</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--teal);font-weight:700;">{{ r.total_tco | inr }}</td>
+          <td>{{ r.total_distance_km }} km</td>
+          <td>
+            {% if r.cost_per_km is not none %}
+            <span class="text-mono">₹{{ r.cost_per_km }}/km</span>
+            {% else %}<span class="text-muted">N/A</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="padding:10px 16px;background:var(--bg-secondary);border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-muted);">
+    ℹ️ <strong>* Deduplication Guard:</strong> "Other Expenses" includes standalone operational expenditures (insurance, tolls, tax, detailing). Expenses auto-linked to service history via <code>linked_maintenance_id</code> are excluded from this column to guarantee maintenance invoices are never double-counted in Total Cost of Ownership (<code>TCO = Maintenance + Fuel + Other Expenses</code>).
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">📋</div>
+  <h3>No vehicle data yet</h3>
+  <p>Add vehicles and record maintenance, fuel, and expense data to generate reports.</p>
+  <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary">＋ Add Vehicle</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+{% block title %}Add Vehicle{% endblock %}
+{% block page_title %}Add Vehicle{% endblock %}
+{% block page_subtitle %}Register a new vehicle{% endblock %}
+{% block header_actions %}<a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">← Back to Vehicles</a>{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+  <div class="card-header">
+    <div class="card-title">🚘 Vehicle Registration</div>
+    <span class="ml-status rule-based">● Rule-Based Health Scoring</span>
+  </div>
+
+  <form method="POST" action="{{ url_for('vehicles.add_vehicle') }}" novalidate>
+    <div class="form-grid">
+
+      <div class="form-group autocomplete-container">
+        <label for="make">Make <span class="req">*</span></label>
+        <input type="text" id="make" name="make" required autocomplete="off"
+               value="{{ form_data.get('make', '') }}"
+               placeholder="e.g. Maruti Suzuki, Hyundai, Tata…"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="make-suggestions" />
+        <div id="make-suggestions" class="autocomplete-dropdown" role="listbox" style="display:none;"></div>
+      </div>
+
+      <div class="form-group autocomplete-container">
+        <label for="model">Model <span class="req">*</span></label>
+        <input type="text" id="model" name="model" required autocomplete="off"
+               value="{{ form_data.get('model', '') }}"
+               placeholder="e.g. Swift, Creta, Nexon…"
+               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="model-suggestions" />
+        <div id="model-suggestions" class="autocomplete-dropdown" role="listbox" style="display:none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="variant">Variant / Trim</label>
+        <input type="text" id="variant" name="variant"
+               value="{{ form_data.get('variant', '') }}"
+               placeholder="e.g. SX, VDi, V, Long Range Empowered, CRDe 4x4…" />
+        <span class="form-hint">Used for exact showroom price & market pricing matches.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="transmission">Transmission</label>
+        <select id="transmission" name="transmission">
+          <option value="Manual" {% if form_data.get('transmission', 'Manual') == 'Manual' %}selected{% endif %}>Manual</option>
+          <option value="Automatic" {% if form_data.get('transmission') == 'Automatic' %}selected{% endif %}>Automatic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="registration_number">Registration Number <span class="req">*</span></label>
+        <input type="text" id="registration_number" name="registration_number" required
+               value="{{ form_data.get('registration_number', '') }}"
+               placeholder="e.g. MH12AB1234" style="text-transform:uppercase;" />
+        <span class="form-hint">Must be unique. 2–20 alphanumeric characters.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="manufacturing_year">Manufacturing Year <span class="req">*</span></label>
+        <input type="number" id="manufacturing_year" name="manufacturing_year"
+               min="1900" max="{{ current_year }}"
+               value="{{ form_data.get('manufacturing_year', current_year) }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="odometer_km">Current Odometer (km) <span class="req">*</span></label>
+        <input type="number" id="odometer_km" name="odometer_km" min="0" step="1"
+               value="{{ form_data.get('odometer_km', '0') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="fuel_type">Fuel / Power Type <span class="req">*</span></label>
+        <select id="fuel_type" name="fuel_type" required>
+          {% for ft in fuel_types %}
+          <option value="{{ ft }}" {% if form_data.get('fuel_type', 'Petrol') == ft %}selected{% endif %}>{{ ft }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="grid-column: 1 / -1; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:6px; padding:12px; margin-top:4px;">
+        <label style="font-weight:600; margin-bottom:4px;">Original Ex-Showroom Price (Optional Manual Entry)</label>
+        <span class="form-hint" style="margin-bottom:8px; display:block;">
+          If omitted, CAR OS checks the catalog for an exact variant & year match. If unavailable, it will prompt for manual entry.
+        </span>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+          <div>
+            <label for="original_showroom_price" class="text-xs text-muted">Price in INR (₹)</label>
+            <input type="number" id="original_showroom_price" name="original_showroom_price" min="10000" max="200000000"
+                   value="{{ form_data.get('original_showroom_price', '') }}" placeholder="e.g. 1099000" />
+          </div>
+          <div>
+            <label for="showroom_price_source" class="text-xs text-muted">Price Source</label>
+            <input type="text" id="showroom_price_source" name="showroom_price_source"
+                   value="{{ form_data.get('showroom_price_source', '') }}" placeholder="e.g. Dealer Invoice, Autocar" />
+          </div>
+          <div>
+            <label for="showroom_price_notes" class="text-xs text-muted">Notes / Conditions</label>
+            <input type="text" id="showroom_price_notes" name="showroom_price_notes"
+                   value="{{ form_data.get('showroom_price_notes', '') }}" placeholder="e.g. Purchase invoice verified" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="service_history">Service History</label>
+        <select id="service_history" name="service_history">
+          {% for sh in service_history_options %}
+          <option value="{{ sh }}" {% if form_data.get('service_history', 'Unknown') == sh %}selected{% endif %}>{{ sh }}</option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">Full history = best health score; None = larger penalty.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="reported_issues">Reported Issues (count)</label>
+        <input type="number" id="reported_issues" name="reported_issues" min="0"
+               value="{{ form_data.get('reported_issues', '0') }}" />
+        <span class="form-hint">Number of known mechanical issues (0 if none).</span>
+      </div>
+
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" name="notes" rows="3"
+                placeholder="Any additional information about the vehicle…">{{ form_data.get('notes', '') }}</textarea>
+    </div>
+
+    <!-- ── OBD-II Diagnostic Data (Optional) ────────────────────────── -->
+    <details class="card" style="margin-top:20px;border:1px solid var(--border);border-radius:10px;padding:0;background:rgba(255,255,255,0.02);overflow:hidden;" {% if form_data.get('engine_rpm') or form_data.get('dtc_codes') or form_data.get('coolant_temp_c') or form_data.get('obd_connection_status') == 'Connected' %}open{% endif %}>
+      <summary style="font-weight:700;font-size:16px;cursor:pointer;padding:16px 20px;color:var(--text-primary);display:flex;align-items:center;gap:10px;user-select:none;background:rgba(255,255,255,0.03);">
+        <span style="font-size:18px;">🔌</span>
+        <span>OBD-II Diagnostic Data (Optional)</span>
+        <span class="badge badge-muted" style="margin-left:auto;font-size:11px;">Optional</span>
+      </summary>
+
+      <div style="padding:20px;border-top:1px solid var(--border);">
+        <p class="text-sm text-muted" style="margin-bottom:16px;">
+          Log snapshot telemetry or trouble codes from an OBD scanner. You may leave any or all fields blank.
+          Data is stored with a timestamp and categorized under <strong>Manual</strong> entry mode.
+        </p>
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="obd_data_source">Data Entry Mode</label>
+            <select id="obd_data_source" name="obd_data_source">
+              <option value="Manual" {% if form_data.get('obd_data_source', 'Manual') == 'Manual' %}selected{% endif %}>Manual Entry (Scanner readings entered by owner)</option>
+              <option value="Live OBD" {% if form_data.get('obd_data_source') == 'Live OBD' %}selected{% endif %} disabled>Live OBD Interface (Hardware not detected)</option>
+            </select>
+            <span class="form-hint">Physical OBD-II interface required for live telemetry stream.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="obd_connection_status">OBD Connection Status</label>
+            <select id="obd_connection_status" name="obd_connection_status">
+              <option value="Not connected" {% if form_data.get('obd_connection_status', 'Not connected') == 'Not connected' %}selected{% endif %}>Not connected</option>
+              <option value="Connected" {% if form_data.get('obd_connection_status') == 'Connected' %}selected{% endif %}>Connected</option>
+            </select>
+            <span class="form-hint">Status during scan or diagnostic session.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="engine_rpm">Engine RPM</label>
+            <input type="number" id="engine_rpm" name="engine_rpm" min="0" max="15000" step="1"
+                   value="{{ form_data.get('engine_rpm', '') }}"
+                   placeholder="e.g. 750 (idle) or 2200" />
+            <span class="form-hint">Range: 0–15,000 RPM.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicle_speed_kmh">Vehicle Speed (km/h)</label>
+            <input type="number" id="vehicle_speed_kmh" name="vehicle_speed_kmh" min="0" max="400" step="0.1"
+                   value="{{ form_data.get('vehicle_speed_kmh', '') }}"
+                   placeholder="e.g. 0 or 65.5" />
+            <span class="form-hint">Range: 0–400 km/h.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="coolant_temp_c">Engine Coolant Temperature (°C)</label>
+            <input type="number" id="coolant_temp_c" name="coolant_temp_c" min="-40" max="150" step="0.1"
+                   value="{{ form_data.get('coolant_temp_c', '') }}"
+                   placeholder="e.g. 88 (normal: 80–95°C)" />
+            <span class="form-hint">Range: -40°C to 150°C.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="engine_load_pct">Engine Load (%)</label>
+            <input type="number" id="engine_load_pct" name="engine_load_pct" min="0" max="100" step="0.1"
+                   value="{{ form_data.get('engine_load_pct', '') }}"
+                   placeholder="e.g. 24.5" />
+            <span class="form-hint">Calculated load: 0–100%.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="throttle_pos_pct">Throttle Position (%)</label>
+            <input type="number" id="throttle_pos_pct" name="throttle_pos_pct" min="0" max="100" step="0.1"
+                   value="{{ form_data.get('throttle_pos_pct', '') }}"
+                   placeholder="e.g. 14.0" />
+            <span class="form-hint">Absolute throttle: 0–100%.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="battery_voltage">Battery Voltage (V)</label>
+            <input type="number" id="battery_voltage" name="battery_voltage" min="0" max="30" step="0.1"
+                   value="{{ form_data.get('battery_voltage', '') }}"
+                   placeholder="e.g. 12.6 (normal resting: 12.4–12.7V)" />
+            <span class="form-hint">Electrical bus potential: 0–30V.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="fuel_system_status">Fuel-System Status</label>
+            <select id="fuel_system_status" name="fuel_system_status">
+              <option value="">-- Optional / Not Specified --</option>
+              <option value="Closed loop" {% if form_data.get('fuel_system_status') == 'Closed loop' %}selected{% endif %}>Closed loop (O2 sensor feedback active)</option>
+              <option value="Open loop (warm-up)" {% if form_data.get('fuel_system_status') == 'Open loop (warm-up)' %}selected{% endif %}>Open loop (engine warming up)</option>
+              <option value="Open loop (driving)" {% if form_data.get('fuel_system_status') == 'Open loop (driving)' %}selected{% endif %}>Open loop (heavy load / wide open throttle)</option>
+              <option value="Open loop (fault)" {% if form_data.get('fuel_system_status') == 'Open loop (fault)' %}selected{% endif %}>Open loop (system fault / limp mode)</option>
+              <option value="Closed loop (fault)" {% if form_data.get('fuel_system_status') == 'Closed loop (fault)' %}selected{% endif %}>Closed loop with system fault</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="dtc_codes">Diagnostic Trouble Codes (DTCs)</label>
+            <input type="text" id="dtc_codes" name="dtc_codes"
+                   value="{{ form_data.get('dtc_codes', '') }}"
+                   placeholder="e.g. P0420, P0300" style="text-transform:uppercase;" />
+            <span class="form-hint">Comma-separated standard 5-char codes (e.g. P0420, P0300).</span>
+          </div>
+
+        </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label for="obd_notes">Additional Diagnostic Notes</label>
+          <textarea id="obd_notes" name="obd_notes" rows="2"
+                    placeholder="Scan tool make/model, live drive observations, or freeze frame notes…">{{ form_data.get('obd_notes', '') }}</textarea>
+        </div>
+      </div>
+    </details>
+
+    <div class="disclaimer" style="margin-top:16px;">
+      <strong>ℹ️ Note:</strong> Health score and resale value will be calculated automatically by the backend
+      using deterministic formulas. You cannot manually enter these values.
+    </div>
+
+    <div class="form-actions" style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary">✓ Register Vehicle</button>
+      <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const makeInput = document.getElementById("make");
+  const modelInput = document.getElementById("model");
+  const makeDropdown = document.getElementById("make-suggestions");
+  const modelDropdown = document.getElementById("model-suggestions");
+
+  let activeIndex = -1;
+  let currentSuggestions = [];
+  let activeDropdown = null;
+  let debounceTimer = null;
+
+  function escapeHTML(str) {
+    if (!str) return "";
+    const p = document.createElement("p");
+    p.textContent = str;
+    return p.innerHTML;
+  }
+
+  function closeAllDropdowns() {
+    [makeDropdown, modelDropdown].forEach(dd => {
+      if (dd) {
+        dd.style.display = "none";
+        dd.innerHTML = "";
+      }
+    });
+    if (makeInput) makeInput.setAttribute("aria-expanded", "false");
+    if (modelInput) modelInput.setAttribute("aria-expanded", "false");
+    activeDropdown = null;
+    activeIndex = -1;
+    currentSuggestions = [];
+  }
+
+  function selectSuggestion(item) {
+    if (!item) return;
+    if (makeInput) makeInput.value = item.make;
+    if (modelInput) modelInput.value = item.model;
+    closeAllDropdowns();
+    if (modelInput) modelInput.focus();
+  }
+
+  function renderDropdown(dropdown, input, suggestions) {
+    dropdown.innerHTML = "";
+    activeIndex = -1;
+    currentSuggestions = suggestions;
+    activeDropdown = dropdown;
+
+    if (!suggestions || suggestions.length === 0) {
+      dropdown.style.display = "none";
+      input.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    suggestions.forEach((item, index) => {
+      const el = document.createElement("div");
+      el.className = "autocomplete-item";
+      el.id = `autocomplete-opt-${index}`;
+      el.setAttribute("role", "option");
+      el.setAttribute("aria-selected", "false");
+      el.innerHTML = `
+        <div>
+          <span class="autocomplete-make">${escapeHTML(item.make)}</span>
+          <span class="autocomplete-model">${escapeHTML(item.model)}</span>
+        </div>
+        <span class="autocomplete-badge">Indian Market</span>
+      `;
+
+      el.addEventListener("mouseenter", function () {
+        updateActiveHighlight(index);
+      });
+
+      el.addEventListener("mousedown", function (e) {
+        e.preventDefault(); // prevent blur
+        selectSuggestion(item);
+      });
+
+      dropdown.appendChild(el);
+    });
+
+    dropdown.style.display = "block";
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  function updateActiveHighlight(newIndex) {
+    if (!activeDropdown) return;
+    const items = activeDropdown.querySelectorAll(".autocomplete-item");
+    items.forEach((item, idx) => {
+      if (idx === newIndex) {
+        item.classList.add("active");
+        item.setAttribute("aria-selected", "true");
+        item.scrollIntoView({ block: "nearest" });
+      } else {
+        item.classList.remove("active");
+        item.setAttribute("aria-selected", "false");
+      }
+    });
+    activeIndex = newIndex;
+  }
+
+  function fetchSuggestions(query, dropdown, input) {
+    if (!query || query.trim().length === 0) {
+      closeAllDropdowns();
+      return;
+    }
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const url = `{{ url_for('vehicles.api_vehicle_catalogue') }}?q=${encodeURIComponent(query.trim())}&limit=12`;
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          renderDropdown(dropdown, input, data.suggestions || []);
+        })
+        .catch(() => {
+          closeAllDropdowns();
+        });
+    }, 200);
+  }
+
+  function attachAutocomplete(input, dropdown, isModelInput) {
+    if (!input || !dropdown) return;
+
+    input.addEventListener("input", function () {
+      let q = input.value.trim();
+      if (isModelInput && makeInput && makeInput.value.trim()) {
+        // If make is already present, search make + model
+        q = `${makeInput.value.trim()} ${q}`.trim();
+      }
+      fetchSuggestions(q, dropdown, input);
+    });
+
+    input.addEventListener("keydown", function (e) {
+      if (!activeDropdown || activeDropdown.style.display === "none") {
+        if (e.key === "ArrowDown" && input.value.trim()) {
+          fetchSuggestions(input.value.trim(), dropdown, input);
+        }
+        return;
+      }
+
+      const items = activeDropdown.querySelectorAll(".autocomplete-item");
+      const count = items.length;
+      if (count === 0) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = (activeIndex + 1) % count;
+        updateActiveHighlight(next);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prev = (activeIndex - 1 + count) % count;
+        updateActiveHighlight(prev);
+      } else if (e.key === "Enter") {
+        if (activeIndex >= 0 && activeIndex < count) {
+          e.preventDefault();
+          selectSuggestion(currentSuggestions[activeIndex]);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeAllDropdowns();
+      } else if (e.key === "Tab") {
+        closeAllDropdowns();
+      }
+    });
+
+    input.addEventListener("blur", function () {
+      // Delay so mousedown on suggestion registers
+      setTimeout(closeAllDropdowns, 200);
+    });
+  }
+
+  attachAutocomplete(makeInput, makeDropdown, false);
+  attachAutocomplete(modelInput, modelDropdown, true);
+
+  // Close when clicking outside
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".autocomplete-container")) {
+      closeAllDropdowns();
+    }
+  });
+});
+</script>
+{% endblock %}
+

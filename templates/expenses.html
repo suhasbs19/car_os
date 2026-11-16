@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% block title %}Expenses — CAR OS{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+{% block page_subtitle %}All vehicle ownership costs, operating expenditures, and scheduled outlays{% endblock %}
+
+{% block header_actions %}
+<button type="button" class="btn btn-primary btn-sm" onclick="openExpenseModal()" id="btn-header-add-expense">
+  + Add Expense
+</button>
+<a href="{{ url_for('analytics.add_expense') }}" class="btn btn-secondary btn-sm" style="margin-left:6px;" title="Open standalone dedicated form">
+  Full Form
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Notification Toast Container -->
+<div id="expense-toast" style="display:none;position:fixed;top:20px;right:20px;z-index:9999;background:var(--bg-card);border:1px solid var(--teal);color:var(--text-primary);border-radius:8px;padding:12px 18px;box-shadow:0 10px 30px rgba(0,0,0,0.5);align-items:center;gap:10px;">
+  <span style="color:var(--teal);font-weight:700;font-size:16px;">✓</span>
+  <span id="expense-toast-msg" style="font-size:13px;">Expense added successfully!</span>
+</div>
+
+<!-- Filters Bar -->
+<form method="GET" action="{{ url_for('analytics.list_expenses') }}">
+  <div class="filters-bar">
+    <div class="form-group">
+      <label for="veh-filter">Vehicle</label>
+      <select id="veh-filter" name="vehicle_id">
+        <option value="">All Vehicles</option>
+        {% for v in vehicles %}
+        <option value="{{ v.id }}" {% if vehicle_id == v.id %}selected{% endif %}>
+          {{ v.registration_number }} — {{ v.make }} {{ v.model }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="cat-filter">Category</label>
+      <select id="cat-filter" name="category">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="date-from">From</label>
+      <input type="date" id="date-from" name="date_from" value="{{ date_from }}" />
+    </div>
+    <div class="form-group">
+      <label for="date-to">To</label>
+      <input type="date" id="date-to" name="date_to" value="{{ date_to }}" />
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('analytics.list_expenses') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- Category Breakdown Cards -->
+{% if category_totals %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">📊 Category Breakdown</div>
+    <div style="font-size:18px;font-weight:800;color:var(--teal);">Total: {{ total | inr }}</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;">
+    {% for cat, amt in category_totals.items() %}
+    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;min-width:160px;">
+      <div class="text-xs text-muted" style="margin-bottom:4px;">{{ cat }}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text-primary);">{{ amt | inr }}</div>
+      <div class="text-xs text-muted">{{ ((amt / total * 100) | round(1)) if total > 0 else 0 }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Expense Records Table Card -->
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="card-title" style="margin:0;">
+        💳 Expense Records
+        <span class="badge badge-teal" id="expenses-count-badge" style="margin-left:8px;">{{ expenses | length }}</span>
+      </div>
+      {% if total > 0 %}
+      <div id="expenses-total-display" style="font-weight:700;color:var(--teal);font-size:15px;">
+        Total: {{ total | inr }}
+      </div>
+      {% endif %}
+    </div>
+    <div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="openExpenseModal()" id="btn-card-add-expense" style="display:inline-flex;align-items:center;gap:6px;">
+        <span style="font-weight:700;">+ Add Expense</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="expenses-table-wrap" {% if not expenses %}style="display:none;"{% endif %}>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Vehicle</th>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Description / Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="expenses-tbody">
+        {% for e in expenses %}
+        <tr id="expense-row-{{ e.id }}">
+          <td>{{ e.date }}</td>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=e.vehicle_id) }}" style="color:var(--teal);text-decoration:none;font-weight:600;">
+              {{ e.vehicle.registration_number if e.vehicle else e.vehicle_id }}
+            </a>
+            <span class="text-xs text-muted" style="display:block;">{{ e.vehicle.make }} {{ e.vehicle.model }}</span>
+          </td>
+          <td>
+            <span class="badge badge-muted">{{ e.category }}</span>
+            {% if e.linked_maintenance_id %}
+              <span class="badge badge-info" style="font-size:9px;margin-left:4px;" title="Linked to Service Record #{{ e.linked_maintenance_id }}">Linked Maint</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--teal);font-weight:700;">{{ e.amount | inr }}</td>
+          <td class="text-sm text-muted">{{ e.description or '—' }}</td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm"
+              onclick="openDeleteModal('del-exp-{{ e.id }}', '{{ e.category }} on {{ e.date }}')">Del</button>
+            <form id="del-exp-{{ e.id }}" action="{{ url_for('analytics.delete_expense', expense_id=e.id) }}" method="POST" style="display:none;"></form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="empty-state" id="expenses-empty-state" {% if expenses %}style="display:none;"{% endif %}>
+    <div class="empty-icon">💳</div>
+    <h3>No expense records found</h3>
+    <p>Track all ownership expenditures including fuel, insurance, servicing, road tax, and detailing.</p>
+    <button type="button" class="btn btn-primary" onclick="openExpenseModal()">+ Add First Expense</button>
+  </div>
+</div>
+
+<!-- Anti Double-Counting Disclaimer -->
+<div class="disclaimer">
+  <strong>₹ Double-counting protection:</strong> Expenses with a <em>Linked Maint</em> status represent maintenance invoices. CAR OS automatically deducts linked records when calculating standalone ownership costs so maintenance is never counted twice in Total Cost of Ownership (TCO).
+</div>
+
+<!-- Add Expense Modal Dialog -->
+<div class="modal-overlay" id="expense-modal" role="dialog" aria-modal="true" aria-labelledby="expense-modal-title">
+  <div class="modal" style="max-width:540px;width:92%;padding:26px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 id="expense-modal-title" style="margin:0;font-size:18px;font-weight:700;color:var(--text-primary);">
+        + Add Vehicle Expense
+      </h3>
+      <button type="button" onclick="closeExpenseModal()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;" aria-label="Close modal">&times;</button>
+    </div>
+
+    <!-- Error Alert Box -->
+    <div id="modal-error-alert" style="display:none;background:rgba(239,68,68,0.15);border:1px solid var(--danger);border-radius:6px;padding:10px 14px;color:var(--danger);font-size:13px;margin-bottom:14px;"></div>
+
+    <form id="add-expense-form" method="POST" action="{{ url_for('analytics.add_expense') }}">
+      <input type="hidden" name="from_page" value="expenses" />
+
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px;">
+        
+        <!-- Vehicle Dropdown -->
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="modal-vehicle">Vehicle <span class="req">*</span></label>
+          <select id="modal-vehicle" name="vehicle_id" class="form-control" required style="width:100%;height:38px;">
+            <option value="">Select registered vehicle...</option>
+            {% for v in vehicles %}
+            <option value="{{ v.id }}" {% if vehicle_id == v.id %}selected{% endif %}>
+              {{ v.registration_number }} — {{ v.make }} {{ v.model }} ({{ v.fuel_type }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Date Picker (Defaults to Today) -->
+        <div class="form-group">
+          <label for="modal-date">Expense Date <span class="req">*</span></label>
+          <input type="date" id="modal-date" name="date" class="form-control" required style="width:100%;height:38px;" value="{{ today_iso }}" />
+        </div>
+
+        <!-- Category Dropdown -->
+        <div class="form-group">
+          <label for="modal-category">Category <span class="req">*</span></label>
+          <select id="modal-category" name="category" class="form-control" required style="width:100%;height:38px;">
+            <option value="">Select category...</option>
+            {% for c in modal_categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Amount (INR) -->
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="modal-amount">Amount (₹) <span class="req">*</span></label>
+          <input type="number" id="modal-amount" name="amount" min="0.01" step="0.01" class="form-control" placeholder="e.g. 3500.00" required style="width:100%;height:38px;font-size:15px;font-weight:600;" />
+        </div>
+
+        <!-- Optional Related Maintenance Record -->
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="modal-linked-maint">Related Maintenance Record (Optional)</label>
+          <select id="modal-linked-maint" name="linked_maintenance_id" class="form-control" style="width:100%;height:38px;">
+            <option value="">None (Standalone Operational Expense)</option>
+            {% for m in recent_maintenance %}
+            <option value="{{ m.id }}">
+              #{{ m.id }} — {{ m.service_date }} ({{ m.component_name or m.service_category }}) — ₹{{ '{:,.0f}'.format(m.cost) }}
+            </option>
+            {% endfor %}
+          </select>
+          <span class="form-hint" style="font-size:11px;color:var(--text-muted);display:block;margin-top:2px;">
+            Linked expenses prevent duplicate cost counting in Total Cost of Ownership (TCO).
+          </span>
+        </div>
+
+        <!-- Description / Notes -->
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="modal-desc">Description or Notes (Optional)</label>
+          <textarea id="modal-desc" name="description" rows="2" class="form-control" placeholder="e.g. Annual insurance policy renewal, toll fastag recharge, routine exterior wash" style="width:100%;"></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeExpenseModal()">Cancel</button>
+        <button type="submit" id="btn-save-expense" class="btn btn-primary" style="min-width:120px;">
+          Save Expense
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openExpenseModal() {
+  const modal = document.getElementById('expense-modal');
+  const alertBox = document.getElementById('modal-error-alert');
+  if (alertBox) alertBox.style.display = 'none';
+
+  // Ensure date defaults to today if empty
+  const dateInput = document.getElementById('modal-date');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = '{{ today_iso }}';
+  }
+
+  modal.classList.add('open');
+  const vehSelect = document.getElementById('modal-vehicle');
+  if (vehSelect) vehSelect.focus();
+}
+
+function closeExpenseModal() {
+  const modal = document.getElementById('expense-modal');
+  modal.classList.remove('open');
+}
+
+// Close modal on Escape key press or clicking backdrop
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeExpenseModal();
+});
+document.getElementById('expense-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeExpenseModal();
+});
+
+// Intercept form submission via AJAX for dynamic insertion without page reload
+document.getElementById('add-expense-form').addEventListener('submit', function(e) {
+  const form = this;
+  const saveBtn = document.getElementById('btn-save-expense');
+  const alertBox = document.getElementById('modal-error-alert');
+
+  // Basic client-side check
+  const amount = parseFloat(document.getElementById('modal-amount').value);
+  if (isNaN(amount) || amount <= 0) {
+    e.preventDefault();
+    alertBox.textContent = 'Please enter a valid positive amount greater than zero.';
+    alertBox.style.display = 'block';
+    return;
+  }
+
+  // Use fetch for seamless update
+  e.preventDefault();
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  alertBox.style.display = 'none';
+
+  const formData = new FormData(form);
+
+  fetch('{{ url_for("analytics.add_expense") }}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    return response.json().then(data => ({ status: response.status, data }));
+  })
+  .then(({ status, data }) => {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Expense';
+
+    if (status === 201 && data.success) {
+      // Dynamic insertion into table
+      const exp = data.expense;
+      const tbody = document.getElementById('expenses-tbody');
+      const tableWrap = document.getElementById('expenses-table-wrap');
+      const emptyState = document.getElementById('expenses-empty-state');
+
+      if (tableWrap) tableWrap.style.display = 'block';
+      if (emptyState) emptyState.style.display = 'none';
+
+      const newRow = document.createElement('tr');
+      newRow.id = 'expense-row-' + exp.id;
+      newRow.style.backgroundColor = 'rgba(20, 184, 166, 0.12)';
+      newRow.style.transition = 'background-color 2s ease';
+
+      const linkedBadge = exp.linked_maintenance_id
+        ? `<span class="badge badge-info" style="font-size:9px;margin-left:4px;" title="Linked to Service Record #${exp.linked_maintenance_id}">Linked Maint</span>`
+        : '';
+
+      newRow.innerHTML = `
+        <td>${exp.date}</td>
+        <td>
+          <a href="/vehicles/${exp.vehicle_id}" style="color:var(--teal);text-decoration:none;font-weight:600;">
+            ${exp.registration_number}
+          </a>
+          <span class="text-xs text-muted" style="display:block;">${exp.vehicle_name}</span>
+        </td>
+        <td>
+          <span class="badge badge-muted">${exp.category}</span>
+          ${linkedBadge}
+        </td>
+        <td style="color:var(--teal);font-weight:700;">${exp.amount_formatted}</td>
+        <td class="text-sm text-muted">${exp.description}</td>
+        <td>
+          <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteModal('del-exp-${exp.id}', '${exp.category} on ${exp.date}')">Del</button>
+          <form id="del-exp-${exp.id}" action="/expenses/${exp.id}/delete" method="POST" style="display:none;"></form>
+        </td>
+      `;
+
+      if (tbody.firstChild) {
+        tbody.insertBefore(newRow, tbody.firstChild);
+      } else {
+        tbody.appendChild(newRow);
+      }
+
+      // Fade out highlight
+      setTimeout(() => { newRow.style.backgroundColor = ''; }, 2500);
+
+      // Increment count badge
+      const countBadge = document.getElementById('expenses-count-badge');
+      if (countBadge) {
+        const curCount = parseInt(countBadge.textContent) || 0;
+        countBadge.textContent = curCount + 1;
+      }
+
+      // Close modal & reset form
+      closeExpenseModal();
+      form.reset();
+
+      // Show toast banner
+      const toast = document.getElementById('expense-toast');
+      const toastMsg = document.getElementById('expense-toast-msg');
+      if (toast && toastMsg) {
+        toastMsg.textContent = `Recorded: ${exp.category} (₹${exp.amount.toLocaleString('en-IN')}) for ${exp.registration_number}`;
+        toast.style.display = 'flex';
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+      }
+
+    } else {
+      // Show errors
+      const errorMsg = (data.errors && data.errors.length)
+        ? data.errors.join(' ')
+        : (data.message || 'An error occurred while saving the expense.');
+      alertBox.textContent = errorMsg;
+      alertBox.style.display = 'block';
+    }
+  })
+  .catch(err => {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Expense';
+    // Fall back to standard form submit
+    form.submit();
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CAR OS{% endblock %} | Intelligent Vehicle System</title>
+  <meta name="description" content="{% block meta_desc %}CAR OS — Intelligent Vehicle System and Cost Management Platform. Fleet analytics, health scoring, maintenance tracking, and ownership decisions.{% endblock %}" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+<nav class="sidebar" aria-label="Main Navigation">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🚗</div>
+    <h1>CAR OS</h1>
+    <p>Vehicle Intelligence</p>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+
+    <a class="nav-item" href="{{ url_for('analytics.dashboard') }}" data-path="/dashboard">
+      <span class="nav-icon">📊</span>
+      <span>Overview</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('vehicles.list_vehicles') }}" data-path="/vehicles">
+      <span class="nav-icon">🚘</span>
+      <span>Vehicles</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('maintenance.list_maintenance') }}" data-path="/maintenance">
+      <span class="nav-icon">🔧</span>
+      <span>Maintenance</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('fuel.list_fuel') }}" data-path="/fuel">
+      <span class="nav-icon">⛽</span>
+      <span>Fuel &amp; Energy</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('analytics.list_expenses') }}" data-path="/expenses">
+      <span class="nav-icon">💸</span>
+      <span>Expenses</span>
+    </a>
+
+    <div class="nav-section-label">Intelligence</div>
+
+    <a class="nav-item" href="{{ url_for('analytics.valuation') }}" data-path="/valuation">
+      <span class="nav-icon">💰</span>
+      <span>Valuation</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('analytics.decisions') }}" data-path="/decisions">
+      <span class="nav-icon">🎯</span>
+      <span>Maintain–Repair–Sell</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('analytics.diagnostics') }}" data-path="/diagnostics">
+      <span class="nav-icon">🔍</span>
+      <span>Diagnostics</span>
+    </a>
+
+    <a class="nav-item" href="{{ url_for('analytics.reports') }}" data-path="/reports">
+      <span class="nav-icon">📋</span>
+      <span>Reports</span>
+    </a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════ MAIN CONTENT ══════════════════════════════ -->
+<div class="main-content">
+  <!-- Top Header -->
+  <header class="top-header">
+    <div>
+      <div class="page-title">{% block page_title %}CAR OS{% endblock %}</div>
+      <div class="page-subtitle">{% block page_subtitle %}Intelligent Vehicle System{% endblock %}</div>
+    </div>
+    <div class="header-actions">
+      {% block header_actions %}
+      <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary btn-sm">
+        ＋ Add Vehicle
+      </a>
+      {% endblock %}
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container" role="alert" aria-live="polite">
+    {% for category, message in messages %}
+    <div class="flash-msg {{ category }}" role="alert">
+      <span>{% if category == 'success' %}✓{% elif category == 'error' %}✕{% else %}ℹ{% endif %}</span>
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Page Body -->
+  <main class="page-body" id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- ── Global Delete Confirmation Modal ───────────────────────────────── -->
+<div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+  <div class="modal">
+    <h3 id="delete-modal-title">⚠️ Confirm Delete</h3>
+    <p>Are you sure you want to delete <strong id="delete-item-name">this item</strong>?
+       This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()" type="button">Cancel</button>
+      <form id="delete-modal-form" method="POST" style="display:inline;">
+        <button class="btn btn-danger" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

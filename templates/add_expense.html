@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Add Expense{% endblock %}
+{% block page_title %}Add Expense{% endblock %}
+{% block page_subtitle %}Record an ownership cost{% endblock %}
+{% block header_actions %}<a href="{{ url_for('analytics.list_expenses') }}" class="btn btn-secondary btn-sm">← Back</a>{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+  <div class="card-header">
+    <div class="card-title">💸 New Expense Record</div>
+  </div>
+
+  <form method="POST" action="{{ url_for('analytics.add_expense') }}" novalidate>
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label for="vehicle_id">Vehicle <span class="req">*</span></label>
+        <select id="vehicle_id" name="vehicle_id" required>
+          <option value="">Select vehicle…</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if form_data.get('vehicle_id')|string == v.id|string %}selected{% endif %}>
+            {{ v.registration_number }} – {{ v.make }} {{ v.model }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Date <span class="req">*</span></label>
+        <input type="date" id="date" name="date"
+               value="{{ form_data.get('date', today_iso) }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category <span class="req">*</span></label>
+        <select id="category" name="category" required>
+          <option value="">Select category…</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {% if form_data.get('category') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Amount (₹) <span class="req">*</span></label>
+        <input type="number" id="amount" name="amount" min="0.01" step="0.01"
+               value="{{ form_data.get('amount', '') }}" required />
+      </div>
+
+      <div class="form-group">
+        <label for="linked_maintenance_id">Related Maintenance Record (optional)</label>
+        <select id="linked_maintenance_id" name="linked_maintenance_id">
+          <option value="">None (Independent Expense)</option>
+          {% for m in recent_maintenance %}
+          <option value="{{ m.id }}" {% if form_data.get('linked_maintenance_id')|string == m.id|string %}selected{% endif %}>
+            #{{ m.id }} · {{ m.component_name or m.service_category }} ({{ m.service_date.strftime('%d %b %Y') if m.service_date else '—' }} · ₹{{ "%.2f"|format(m.cost or 0) }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="description">Description (optional)</label>
+      <textarea id="description" name="description" rows="3"
+                placeholder="Details about this expense…">{{ form_data.get('description', '') }}</textarea>
+    </div>
+
+    <div class="disclaimer" style="margin-top:12px;">
+      <strong>⚠️ Double-counting warning:</strong> If this expense is also recorded in a Maintenance Record,
+      do not include both in total cost calculations. Use the "linked_maintenance_id" field (optional) to flag duplicates.
+    </div>
+
+    <div class="form-actions" style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary">✓ Save Expense</button>
+      <a href="{{ url_for('analytics.list_expenses') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

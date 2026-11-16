@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Overview – Dashboard{% endblock %}
+{% block page_title %}Fleet Overview{% endblock %}
+{% block page_subtitle %}Real-time vehicle analytics dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ── Metric Cards ─────────────────────────────────────────── -->
+<div class="metrics-grid">
+  <div class="metric-card teal">
+    <span class="metric-icon">🚘</span>
+    <div class="metric-value">{{ total_vehicles }}</div>
+    <div class="metric-label">Total Vehicles</div>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-icon">❤️</span>
+    <div class="metric-value" style="color:var(--teal)">{{ avg_health }}<span style="font-size:16px;color:var(--text-muted)">/100</span></div>
+    <div class="metric-label">Avg Fleet Health</div>
+  </div>
+
+  <div class="metric-card healthy">
+    <span class="metric-icon">✅</span>
+    <div class="metric-value">{{ healthy }}</div>
+    <div class="metric-label">Healthy Vehicles</div>
+  </div>
+
+  <div class="metric-card attention">
+    <span class="metric-icon">⚠️</span>
+    <div class="metric-value">{{ attention }}</div>
+    <div class="metric-label">Needs Attention</div>
+  </div>
+
+  <div class="metric-card critical">
+    <span class="metric-icon">🔴</span>
+    <div class="metric-value">{{ critical }}</div>
+    <div class="metric-label">Critical</div>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-icon">💰</span>
+    <div class="metric-value" style="font-size:20px;color:var(--teal)">{{ total_resale | inr }}</div>
+    <div class="metric-label">Fleet Resale Value</div>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-icon">💸</span>
+    <div class="metric-value" style="font-size:20px;color:var(--attention)">{{ total_expenses | inr }}</div>
+    <div class="metric-label">Total Expenses</div>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-icon">🔔</span>
+    <div class="metric-value" style="color:{% if all_upcoming|length > 0 %}var(--attention){% else %}var(--text-muted){% endif %}">
+      {{ all_upcoming | length }}
+    </div>
+    <div class="metric-label">Upcoming / Overdue</div>
+  </div>
+</div>
+
+<!-- ── Charts Row ───────────────────────────────────────────── -->
+<div class="grid-2" style="margin-bottom:20px;">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">📊 Fleet Health Distribution</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="healthChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">💸 Monthly Expenses</div>
+      <span class="text-sm text-muted">Last 6 months</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="expenseChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<div class="grid-2" style="margin-bottom:20px;">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔧 Maintenance by Category</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔔 Upcoming / Overdue Maintenance</div>
+      <a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+
+    {% if all_upcoming %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Vehicle</th>
+          <th>Component</th>
+          <th>Status</th>
+          <th>Reason</th>
+        </tr></thead>
+        <tbody>
+          {% for item in all_upcoming %}
+          <tr>
+            <td class="primary">
+              <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=item.vehicle.id) }}" style="color:var(--teal);text-decoration:none;">
+                {{ item.vehicle.registration_number }}
+              </a>
+            </td>
+            <td>{{ item.component }}</td>
+            <td>
+              <span class="badge {% if item.status == 'Overdue' %}badge-critical{% else %}badge-attention{% endif %}">
+                {{ item.status }}
+              </span>
+            </td>
+            <td class="text-sm">{{ item.reasons[0] if item.reasons else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:32px;">
+      <div class="empty-icon" style="font-size:36px;">✅</div>
+      <p>No upcoming or overdue maintenance</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ── Recent Vehicles ──────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🚘 Recent Vehicles</div>
+    <a href="{{ url_for('vehicles.list_vehicles') }}" class="btn btn-secondary btn-sm">View All</a>
+  </div>
+
+  {% if recent_vehicles %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Registration</th>
+        <th>Make &amp; Model</th>
+        <th>Year / Fuel</th>
+        <th>Odometer</th>
+        <th>Health</th>
+        <th>Showroom Price</th>
+        <th>Market Price</th>
+        <th>Estimated Resale</th>
+      </tr></thead>
+      <tbody>
+        {% for v in recent_vehicles %}
+        <tr>
+          <td class="primary">
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" style="color:var(--teal);text-decoration:none;">
+              {{ v.registration_number }}
+            </a>
+          </td>
+          <td>
+            <div>{{ v.make }} {{ v.model }}</div>
+            {% if v.variant %}<div class="text-xs text-muted">{{ v.variant }}</div>{% endif %}
+          </td>
+          <td class="text-xs">
+            <div>{{ v.manufacturing_year }}</div>
+            <span class="badge badge-info" style="font-size:9px;">{{ v.fuel_type }}</span>
+          </td>
+          <td>{{ '{:,.0f}'.format(v.odometer_km) }} km</td>
+          <td>
+            {% if v.health_score is not none %}
+            <span class="badge {% if v.health_status == 'Healthy' %}badge-healthy{% elif v.health_status == 'Attention' %}badge-attention{% else %}badge-critical{% endif %}">
+              {{ v.health_score | round2 }} · {{ v.health_status }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-xs text-muted">
+            {{ v.original_showroom_price | inr if v.original_showroom_price else '—' }}
+          </td>
+          <td class="text-xs" style="color:#00cfff;">
+            {{ v.current_market_price | inr if v.current_market_price else '—' }}
+          </td>
+          <td class="text-mono" style="color:var(--teal);font-weight:600;">
+            {{ v.estimated_resale_value | inr if v.estimated_resale_value else '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🚘</div>
+    <h3>No vehicles yet</h3>
+    <p>Add your first vehicle to start tracking fleet health, costs, and performance.</p>
+    <a href="{{ url_for('vehicles.add_vehicle') }}" class="btn btn-primary">+ Add First Vehicle</a>
+  </div>
+  {% endif %}
+</div>
+
+<p class="text-xs text-muted" style="margin-top:6px;">
+  Fleet resale valuations calibrated via the Indian CarDekho secondary market regression model.
+</p>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const statusDist = {{ status_distribution | tojson }};
+  const monthlyExp = {{ monthly_expenses | tojson }};
+  const mCat       = {{ maint_cost_by_cat | tojson }};
+
+  renderHealthChart('healthChart', statusDist.Healthy || 0, statusDist.Attention || 0, statusDist.Critical || 0);
+  renderExpenseChart('expenseChart', monthlyExp);
+  renderCategoryChart('categoryChart', mCat);
+</script>
+{% endblock %}

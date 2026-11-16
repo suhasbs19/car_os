@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Import Service History Dataset{% endblock %}
+{% block page_title %}Dataset Ingestion{% endblock %}
+{% block page_subtitle %}Safe, traceable Excel service-history import and vehicle mapping{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary btn-sm">← Back to Maintenance</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Literature & Safety Disclaimer -->
+<div class="disclaimer" style="margin-bottom:20px;">
+  <strong>⚠️ Academic &amp; Data Safety Notice:</strong>
+  The reference workbook (<code>CAR_OS_Dataset_Service_History_VISIBLE.xlsx</code>) contains 32 demonstration service records across 16 synthetic vehicle profiles (<code>V001</code>–<code>V016</code>).
+  Because the source workbook uses internal identifiers rather than real vehicle registration numbers, <strong>CAR OS never guesses or invents vehicle registrations</strong>.
+  All records must be explicitly mapped to registered vehicles or skipped.
+  Idempotency checks ensure records are never imported twice, and linked expenses are deduplicated to protect Total Cost of Ownership (TCO) calculations.
+</div>
+
+<!-- Dataset Inspection Card -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <div class="card-title">📊 Dataset Structure &amp; Quality Profile</div>
+    <span class="badge badge-blue">Workbook: {{ workbook_filename }}</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px;">
+      <div style="background:var(--bg-secondary);padding:12px 16px;border-radius:8px;">
+        <div style="font-size:0.8rem;color:var(--text-muted);">Workbook Sheets</div>
+        <div style="font-size:1.2rem;font-weight:700;">{{ inspection.sheet_names | join(', ') }}</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:12px 16px;border-radius:8px;">
+        <div style="font-size:0.8rem;color:var(--text-muted);">Service History Records</div>
+        <div style="font-size:1.2rem;font-weight:700;">{{ inspection.service_history_summary.total_records }} rows</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:12px 16px;border-radius:8px;">
+        <div style="font-size:0.8rem;color:var(--text-muted);">Unique Vehicle IDs</div>
+        <div style="font-size:1.2rem;font-weight:700;">{{ inspection.service_history_summary.vehicle_ids | length }} (V001–V016)</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:12px 16px;border-radius:8px;">
+        <div style="font-size:0.8rem;color:var(--text-muted);">Evidence Status</div>
+        <div style="font-size:1.1rem;font-weight:600;color:var(--warning-color);">Synthetic Demo Records</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if result %}
+<!-- Ingestion Outcome Card -->
+<div class="card" style="margin-bottom:20px;border-left:4px solid {% if result.dry_run %}var(--info-color){% else %}var(--success-color){% endif %};">
+  <div class="card-header">
+    <div class="card-title">
+      {% if result.dry_run %}
+      🔍 Dry Run / Validation Simulation Results
+      {% else %}
+      ✅ Database Ingestion Completed
+      {% endif %}
+    </div>
+    <span class="badge {% if result.dry_run %}badge-blue{% else %}badge-green{% endif %}">
+      {% if result.dry_run %}SIMULATION ONLY (No DB changes){% else %}COMMITTED TO DATABASE{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;">
+      <div style="background:var(--bg-secondary);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-muted);">Total Rows</div>
+        <div style="font-size:1.3rem;font-weight:700;">{{ result.total_rows }}</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--success-color);">
+          {% if result.dry_run %}Ready to Insert{% else %}Inserted{% endif %}
+        </div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--success-color);">{{ result.inserted }}</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--warning-color);">Duplicate Skipped</div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--warning-color);">{{ result.duplicates }}</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-muted);">Unmapped / Skipped</div>
+        <div style="font-size:1.3rem;font-weight:700;">{{ result.skipped }}</div>
+      </div>
+      <div style="background:var(--bg-secondary);padding:10px;border-radius:6px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--danger-color);">Rejected (Errors)</div>
+        <div style="font-size:1.3rem;font-weight:700;color:var(--danger-color);">{{ result.rejected }}</div>
+      </div>
+    </div>
+
+    <h4>Row Breakdown (First 15 entries)</h4>
+    <div class="table-container" style="max-height:280px;overflow-y:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Source ID</th>
+            <th>Dataset Vehicle</th>
+            <th>Target DB Vehicle</th>
+            <th>Status</th>
+            <th>Details / Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in result.rows[:15] %}
+          <tr>
+            <td><code>{{ r.source_record_id }}</code></td>
+            <td><strong>{{ r.dataset_vehicle_id }}</strong></td>
+            <td>{{ r.target_vehicle or '—' }}</td>
+            <td>
+              {% if r.status in ['INSERTED', 'READY_TO_INSERT'] %}
+              <span class="badge badge-green">{{ r.status }}</span>
+              {% elif r.status == 'DUPLICATE_SKIPPED' %}
+              <span class="badge badge-yellow">{{ r.status }}</span>
+              {% elif r.status == 'SKIPPED' %}
+              <span class="badge badge-blue">{{ r.status }}</span>
+              {% else %}
+              <span class="badge badge-red">{{ r.status }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.85rem;">{{ r.reason or (r.component ~ ' (₹' ~ r.cost ~ ')') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Vehicle Mapping & Ingestion Form -->
+<form method="POST" action="{{ url_for('maintenance.import_dataset') }}">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🚗 Vehicle Mapping Configuration</div>
+      <span style="font-size:0.85rem;color:var(--text-muted);">Select registered vehicles to receive historical records</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;">
+        The algorithm has analyzed the dataset's vehicle specifications and suggested candidate matches below.
+        Verify or adjust each mapping. Vehicles left unmapped will have their service records safely skipped.
+      </p>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Dataset Vehicle ID</th>
+              <th>Dataset Specification</th>
+              <th>Candidate Suggestion</th>
+              <th>Target Registered Vehicle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in candidates %}
+            <tr>
+              <td><code>{{ c.dataset_vehicle_id }}</code></td>
+              <td>{{ c.dataset_spec }}</td>
+              <td>
+                <span class="badge {% if 'High' in c.match_confidence %}badge-green{% elif 'Partial' in c.match_confidence %}badge-yellow{% else %}badge-blue{% endif %}">
+                  {{ c.match_confidence }}
+                </span>
+                <span style="font-size:0.85rem;margin-left:6px;">{{ c.candidate_spec }}</span>
+              </td>
+              <td>
+                <select name="mapping_{{ c.dataset_vehicle_id }}" class="form-control" style="font-size:0.85rem;">
+                  <option value="">— Skip (Do Not Import) —</option>
+                  {% for v in registered_vehicles %}
+                  <option value="{{ v.id }}" {% if c.candidate_vehicle_id == v.id %}selected{% endif %}>
+                    {{ v.registration_number }} ({{ v.make }} {{ v.model }} - {{ v.fuel_type }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:20px;padding:16px;background:var(--bg-secondary);border-radius:8px;">
+        <h4 style="margin-bottom:12px;">Ingestion Options</h4>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="dry_run" value="1" {% if result is none or result.dry_run %}checked{% endif %} />
+            <span><strong>Dry Run (Preview &amp; Validate only)</strong> — Simulates the ingestion without making any database changes.</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="create_expense_records" value="1" checked />
+            <span><strong>Auto-create linked expense records</strong> — Adds matching expense records linked via <code>linked_maintenance_id</code> (prevents double-counting in TCO).</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:12px;">
+        <button type="submit" class="btn btn-primary">
+          ▶ Run Ingestion Workflow
+        </button>
+        <a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary">
+          Cancel
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% endblock %}

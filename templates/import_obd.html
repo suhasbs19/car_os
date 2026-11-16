@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Import OBD Data{% endblock %}
+{% block page_title %}Import OBD Data{% endblock %}
+{% block page_subtitle %}Ingest and validate onboard diagnostic telemetry and trouble codes from CSV files{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('analytics.diagnostics', vehicle_id=vehicle_id if vehicle_id else '') }}" class="btn btn-secondary btn-sm">← Back to Diagnostics</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Step Indicator -->
+<div class="import-steps">
+  <div class="import-step-pill {% if step == 1 or not step %}active{% elif step > 1 %}completed{% endif %}">
+    <span>①</span> Select Vehicle &amp; File
+  </div>
+  <div class="import-step-pill {% if step == 2 %}active{% elif step > 2 %}completed{% endif %}">
+    <span>②</span> Preview &amp; Column Mapping
+  </div>
+  <div class="import-step-pill {% if step == 3 %}active completed{% endif %}">
+    <span>③</span> Ingestion Results
+  </div>
+</div>
+
+{% if step == 1 or not step %}
+<!-- ════════════════════════ STEP 1: UPLOAD & SELECT ════════════════════════ -->
+<div class="card" style="max-width:850px;">
+  <div class="card-header">
+    <div class="card-title">📁 Upload OBD-II Telemetry CSV</div>
+    <span class="badge badge-muted">Step 1 of 3</span>
+  </div>
+
+  <form method="POST" action="{{ url_for('analytics.import_obd_preview') }}" enctype="multipart/form-data">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column: span 2;">
+        <label for="vehicle_id">Target Vehicle <span class="req">*</span></label>
+        <select id="vehicle_id" name="vehicle_id" required>
+          <option value="">-- Select a registered vehicle --</option>
+          {% for v in vehicles %}
+          <option value="{{ v.id }}" {% if vehicle_id == v.id %}selected{% endif %}>
+            {{ v.registration_number }} – {{ v.make }} {{ v.model }} ({{ v.fuel_type }}, {{ v.manufacturing_year }})
+          </option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">Imported OBD records will be permanently associated with this vehicle.</span>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:16px;">
+      <label for="csv_file">OBD-II CSV File <span class="req">*</span></label>
+      <div class="import-dropzone" id="dropzone">
+        <div style="font-size:36px;margin-bottom:8px;">📊</div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:4px;">Drag &amp; drop your CSV file here, or click to browse</div>
+        <p class="text-xs text-muted" style="margin-bottom:12px;">Supports standard OBD-II scanner logs and Toyota Etios research CSV files (up to 10MB / 5,000 rows)</p>
+        <input type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required style="display:none;" />
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('csv_file').click()">Choose CSV File</button>
+        <div id="file-name-display" style="margin-top:10px;font-size:13px;font-weight:600;color:var(--teal);display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Supported Format Notes -->
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:20px;">
+      <div style="font-weight:600;font-size:13.5px;color:var(--text-primary);margin-bottom:6px;">Supported Data Formats &amp; Automatic Column Detection:</div>
+      <ul style="font-size:12.5px;color:var(--text-secondary);padding-left:18px;line-height:1.6;">
+        <li><strong>Standard OBD Fields:</strong> Timestamp, Engine RPM, Vehicle Speed (km/h), Coolant Temp (°C), Engine Load (%), Throttle Position (%), Battery Voltage (V), Fuel Status, and Trouble Codes (DTCs).</li>
+        <li><strong>Toyota Etios Research CSVs:</strong> Safely parses <code>ENGINE_RPM ()</code>, <code>VEHICLE_SPEED ()</code>, <code>COOLANT_TEMPERATURE ()</code>, <code>CONTROL_MODULE_VOLTAGE ()</code>, etc.</li>
+        <li><strong>Safety Handling:</strong> Trailing commas are detected and normalized to prevent column shifts. First columns containing sensor data are preserved without index truncation.</li>
+      </ul>
+    </div>
+
+    <div class="form-actions" style="margin-top:24px;">
+      <button type="submit" class="btn btn-primary" id="btn-inspect">🔍 Inspect &amp; Preview File →</button>
+      <a href="{{ url_for('analytics.diagnostics') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% elif step == 2 %}
+<!-- ════════════════════════ STEP 2: PREVIEW & MAPPING ════════════════════════ -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🔍 Column Mapping &amp; Data Preview</div>
+    <span class="badge badge-teal">Step 2 of 3</span>
+  </div>
+
+  <!-- Vehicle Info Strip -->
+  <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-secondary);padding:12px 18px;border-radius:8px;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <span class="text-xs text-muted">Selected Vehicle:</span>
+      <strong style="color:var(--teal);margin-left:6px;">{{ preview.vehicle_display }}</strong>
+      <span class="badge badge-info" style="margin-left:8px;">{{ preview.vehicle_fuel_type }}</span>
+    </div>
+    <div>
+      <span class="text-xs text-muted">File:</span>
+      <span style="font-weight:600;color:var(--text-primary);margin-left:4px;">{{ preview.filename }}</span>
+      <span class="badge badge-muted" style="margin-left:8px;">{{ preview.total_rows }} rows detected</span>
+    </div>
+  </div>
+
+  <!-- Detection Status Banners -->
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+    {% if preview.has_trailing_comma %}
+    <div style="background:rgba(16,217,138,0.1);border:1px solid rgba(16,217,138,0.3);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--healthy);">
+      ✓ Trailing comma detected and normalized safely. Columns have not been shifted.
+    </div>
+    {% endif %}
+
+    {% if not preview.has_dtc_column %}
+    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--attention);">
+      ℹ️ No DTC (fault code) column detected in this file. Data will be recorded as operational sensor telemetry. Note: absence of trouble codes in a file does not certify full mechanical health.
+    </div>
+    {% else %}
+    <div style="background:rgba(16,217,138,0.1);border:1px solid rgba(16,217,138,0.3);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--healthy);">
+      ✓ Diagnostic Trouble Code (DTC) column detected. Standard P, C, B, U fault codes will be validated and explained.
+    </div>
+    {% endif %}
+
+    {% if preview.is_ev %}
+    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:6px;padding:8px 12px;font-size:12.5px;color:var(--info);">
+      ℹ️ Electric Vehicle Notice: Any voltage readings imported will be attributed to the 12V auxiliary system, NOT High-Voltage traction battery State of Health (SOH).
+    </div>
+    {% endif %}
+  </div>
+
+  <form method="POST" action="{{ url_for('analytics.import_obd_execute') }}">
+    <input type="hidden" name="token" value="{{ preview.token }}" />
+    <input type="hidden" name="vehicle_id" value="{{ preview.vehicle_id }}" />
+
+    <!-- Mapping Table -->
+    <h3 style="font-size:15px;margin-bottom:12px;color:var(--text-primary);">1. Confirm Parameter Mappings</h3>
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <table class="mapping-table">
+        <thead>
+          <tr>
+            <th style="width:30%;">OBD-II Parameter</th>
+            <th style="width:20%;">Expected Unit / Range</th>
+            <th style="width:50%;">Mapped CSV Column Header</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for param_key, param_info in preview.supported_parameters.items() %}
+          <tr>
+            <td>
+              <strong>{{ param_info.label }}</strong>
+            </td>
+            <td>
+              <span class="text-xs text-muted">{{ param_info.unit or 'Text / Codes' }}</span>
+            </td>
+            <td>
+              <select name="mapping_{{ param_key }}" class="mapping-select">
+                <option value="">-- Do Not Import / Not in File --</option>
+                {% for col in preview.headers %}
+                <option value="{{ col }}" {% if preview.detected_mapping.get(param_key) == col %}selected{% endif %}>
+                  {{ col }}
+                </option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Preview Table -->
+    <h3 style="font-size:15px;margin-bottom:12px;color:var(--text-primary);">2. Sample Row Preview (First 8 Rows)</h3>
+    <div class="table-wrap" style="max-height:280px;overflow-y:auto;margin-bottom:20px;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            {% for h in preview.headers %}
+            <th>{{ h }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview.preview_rows %}
+          <tr>
+            <td class="text-xs text-muted">{{ loop.index }}</td>
+            {% for h in preview.headers %}
+            <td class="text-mono" style="font-size:12px;">{{ row.get(h, '') }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Optional Notes -->
+    <div class="form-group" style="margin-bottom:20px;">
+      <label for="custom_notes">Diagnostic Session Notes (optional)</label>
+      <input type="text" id="custom_notes" name="custom_notes" placeholder="e.g. Dyno run, Highway drive log, Pre-inspection scan…" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" id="btn-confirm-import">✓ Validate &amp; Import Records</button>
+      <a href="{{ url_for('analytics.import_obd', vehicle_id=preview.vehicle_id) }}" class="btn btn-secondary">← Choose Different File</a>
+    </div>
+  </form>
+</div>
+
+{% elif step == 3 %}
+<!-- ════════════════════════ STEP 3: INGESTION RESULTS ════════════════════════ -->
+<div class="card" style="max-width:900px;">
+  <div class="card-header">
+    <div class="card-title">✅ Ingestion Summary &amp; Validation Results</div>
+    <span class="badge badge-healthy">Completed</span>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <p class="text-sm text-secondary">
+      OBD-II telemetry import for vehicle <strong style="color:var(--text-primary)">{{ result.vehicle_reg }}</strong> has completed.
+      Associated records are labeled as <span class="badge badge-muted">Imported CSV</span> with original or sequential timestamps.
+    </p>
+  </div>
+
+  <!-- Outcome Stat Badges -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;">
+    <div class="card" style="margin-bottom:0;background:var(--bg-secondary);padding:14px;text-align:center;">
+      <span class="text-xs text-muted">Total CSV Rows</span>
+      <div class="fw-700" style="font-size:24px;color:var(--text-primary);margin-top:4px;">{{ result.total_rows }}</div>
+    </div>
+    <div class="card" style="margin-bottom:0;background:rgba(16,217,138,0.06);border:1px solid rgba(16,217,138,0.25);padding:14px;text-align:center;">
+      <span class="text-xs" style="color:var(--healthy)">Accepted &amp; Saved</span>
+      <div class="fw-700" style="font-size:24px;color:var(--healthy);margin-top:4px;">{{ result.accepted_count }}</div>
+    </div>
+    <div class="card" style="margin-bottom:0;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);padding:14px;text-align:center;">
+      <span class="text-xs" style="color:var(--attention)">Duplicates Prevented</span>
+      <div class="fw-700" style="font-size:24px;color:var(--attention);margin-top:4px;">{{ result.duplicate_count }}</div>
+    </div>
+    <div class="card" style="margin-bottom:0;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);padding:14px;text-align:center;">
+      <span class="text-xs" style="color:var(--critical)">Rejected (Errors)</span>
+      <div class="fw-700" style="font-size:24px;color:var(--critical);margin-top:4px;">{{ result.rejected_count }}</div>
+    </div>
+  </div>
+
+  <!-- Rejection details -->
+  {% if result.rejected_count > 0 %}
+  <div style="margin-bottom:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h4 style="font-size:14px;color:var(--danger)">⚠️ Rejected Row Details (Sample)</h4>
+      {% if result.error_report_token %}
+      <a href="{{ url_for('analytics.download_import_errors', token=result.error_report_token) }}" class="btn btn-secondary btn-sm">
+        📥 Download Complete Error Report (CSV)
+      </a>
+      {% endif %}
+    </div>
+    <div class="table-wrap" style="max-height:220px;overflow-y:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;">Row #</th>
+            <th>Rejection Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rej in result.rejected_sample %}
+          <tr>
+            <td class="text-mono">{{ rej.row_number }}</td>
+            <td style="color:var(--danger);font-size:12.5px;">
+              {{ rej.reasons | join('; ') }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="form-actions" style="margin-top:16px;">
+    <a href="{{ url_for('analytics.diagnostics', vehicle_id=result.vehicle_id) }}" class="btn btn-primary">
+      🔍 View Vehicle Diagnostic History →
+    </a>
+    <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=result.vehicle_id) }}" class="btn btn-secondary">
+      🚘 Vehicle Overview
+    </a>
+    <a href="{{ url_for('analytics.import_obd', vehicle_id=result.vehicle_id) }}" class="btn btn-secondary">
+      ＋ Import Another File
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("csv_file");
+  const nameDisplay = document.getElementById("file-name-display");
+
+  if (dropzone && fileInput) {
+    dropzone.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", function () {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        updateFilename();
+      }
+    });
+
+    fileInput.addEventListener("change", updateFilename);
+
+    function updateFilename() {
+      if (fileInput.files.length > 0) {
+        nameDisplay.textContent = "Selected: " + fileInput.files[0].name;
+        nameDisplay.style.display = "block";
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

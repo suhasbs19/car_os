@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Maintenance Records & Scheduled Budgets{% endblock %}
+{% block page_title %}Maintenance & Service Budgets{% endblock %}
+{% block page_subtitle %}Completed service history, dealership cost benchmarks, and preventive service budgeting{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('maintenance.import_dataset') }}" class="btn btn-secondary btn-sm" style="margin-right:8px;">📥 Import Dataset</a>
+<a href="{{ url_for('maintenance.add_maintenance') }}" class="btn btn-primary btn-sm">＋ Add Service Record</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Summary Metrics Bar ─────────────────────────────────────────── -->
+<div class="metrics-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:20px;">
+  <div class="metric-card teal">
+    <span class="metric-icon">🔧</span>
+    <div class="metric-value">{{ enriched | length }}</div>
+    <div class="metric-label">Recorded Service Events</div>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-icon">💰</span>
+    <div class="metric-value" style="font-size:24px;color:var(--teal)">{{ total_recorded_cost | inr }}</div>
+    <div class="metric-label">Total Incurred Service Cost</div>
+  </div>
+
+  <div class="metric-card healthy">
+    <span class="metric-icon">✅</span>
+    <div class="metric-value">{{ completed_count }}</div>
+    <div class="metric-label">Completed Services</div>
+  </div>
+
+  <div class="metric-card attention">
+    <span class="metric-icon">⏳</span>
+    <div class="metric-value">{{ pending_count }}</div>
+    <div class="metric-label">Pending / Scheduled</div>
+  </div>
+</div>
+
+<!-- ── Filters ─────────────────────────────────────────────────────── -->
+<form method="GET" action="{{ url_for('maintenance.list_maintenance') }}">
+  <div class="filters-bar">
+    <div class="form-group">
+      <label for="veh-filter">Vehicle</label>
+      <select id="veh-filter" name="vehicle_id">
+        <option value="">All Vehicles</option>
+        {% for v in vehicles %}
+        <option value="{{ v.id }}" {% if vehicle_id == v.id %}selected{% endif %}>
+          {{ v.registration_number }} – {{ v.make }} {{ v.model }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="cat-filter">Category</label>
+      <select id="cat-filter" name="category">
+        <option value="">All Categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if category_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="stat-filter">Status</label>
+      <select id="stat-filter" name="status">
+        <option value="">All Statuses</option>
+        {% for s in statuses %}
+        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="{{ url_for('maintenance.list_maintenance') }}" class="btn btn-secondary btn-sm">Clear</a>
+    </div>
+  </div>
+</form>
+
+<!-- ── 1. Incurred Service History (Completed & In-Progress Records) ── -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">🧾 Incurred Service History (Actual Recorded Invoices)</div>
+      <div class="text-xs text-muted" style="margin-top:2px;">
+        Actual maintenance expenditures recorded in vehicle history. Linked automatically to Total Cost of Ownership (TCO).
+      </div>
+    </div>
+    <span class="badge badge-teal">{{ enriched | length }} records</span>
+  </div>
+
+  {% if enriched %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Vehicle</th><th>Category</th><th>Component / Service</th>
+        <th>Recorded Cost</th><th>Next Service</th><th>Reminder</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for item in enriched %}
+        {% set r = item.record %}
+        {% set rem = item.reminder %}
+        {% set v = item.vehicle %}
+        <tr>
+          <td>{{ r.service_date }}</td>
+          <td>
+            {% if v %}
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=v.id) }}" style="color:var(--teal);text-decoration:none;">
+              {{ v.registration_number }}
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td><span class="badge badge-muted">{{ r.service_category }}</span></td>
+          <td class="primary">
+            {{ r.component_name }}
+            {% if r.source_record_id %}
+            <span class="badge badge-yellow" style="font-size:0.72rem;display:inline-flex;align-items:center;gap:4px;margin-left:6px;font-weight:600;" title="Source: {{ r.source_record_id }} ({{ r.evidence_status or 'Synthetic demo record' }})">
+              ⚠️ Synthetic demo record [{{ r.source_record_id }}]
+            </span>
+            {% endif %}
+          </td>
+          <td style="color:var(--teal);font-weight:600;">{{ r.cost | inr }}</td>
+          <td class="text-sm">
+            {% if r.next_service_date %}{{ r.next_service_date }}{% endif %}
+            {% if r.next_service_odometer %} / {{ '{:,.0f}'.format(r.next_service_odometer) }} km{% endif %}
+            {% if not r.next_service_date and not r.next_service_odometer %}—{% endif %}
+          </td>
+          <td>
+            {% if rem.status == 'Overdue' %}
+            <span class="badge badge-critical">Overdue</span>
+            {% elif rem.status == 'Upcoming' %}
+            <span class="badge badge-attention">Upcoming</span>
+            {% else %}
+            <span class="badge badge-healthy">OK</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {% if r.status == 'Completed' %}badge-healthy{% elif r.status == 'Pending' %}badge-attention{% else %}badge-muted{% endif %}">
+              {{ r.status }}
+            </span>
+          </td>
+          <td>
+            <button type="button" class="btn btn-danger btn-sm"
+              onclick="openDeleteModal('del-maint-{{ r.id }}', '{{ r.component_name }}')">Del</button>
+            <form id="del-maint-{{ r.id }}" action="{{ url_for('maintenance.delete_maintenance', record_id=r.id) }}" method="POST" style="display:none;"></form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔧</div>
+    <h3>No maintenance records found</h3>
+    <p>Start tracking service history to monitor health, reminders, and actual costs.</p>
+    <a href="{{ url_for('maintenance.add_maintenance') }}" class="btn btn-primary">＋ Add First Record</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── 2. Upcoming Scheduled Service Budgets & Recommended Inspections ─ -->
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📅 Upcoming Scheduled Service Budgets (Advisory Forecasts)</div>
+      <div class="text-xs text-muted" style="margin-top:2px;">
+        10,000 km milestone budget forecasts. <strong>Informational only:</strong> Not an invoice, not counted in expenses or TCO.
+      </div>
+    </div>
+    <span class="badge badge-info">Advisory Forecast</span>
+  </div>
+
+  {% if fleet_scheduled_budgets %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Vehicle</th><th>Current Odo</th><th>Next Milestone</th><th>Due In</th>
+        <th>Estimated Budget</th><th>Benchmark Range</th><th>Key Inspection Checklist</th><th>Benchmark Basis</th>
+      </tr></thead>
+      <tbody>
+        {% for b in fleet_scheduled_budgets %}
+        {% set veh = b.vehicle %}
+        <tr>
+          <td>
+            <a href="{{ url_for('vehicles.vehicle_detail', vehicle_id=veh.id) }}" style="color:var(--teal);text-decoration:none;font-weight:600;">
+              {{ veh.registration_number }}
+            </a>
+            <div class="text-xs text-muted">{{ veh.make }} {{ veh.model }}</div>
+          </td>
+          <td>{{ '{:,.0f}'.format(veh.odometer_km) }} km</td>
+          <td><span class="badge badge-teal">{{ '{:,.0f}'.format(b.next_interval_km) }} km</span></td>
+          <td class="text-mono">~{{ '{:,.0f}'.format(b.km_until_service) }} km</td>
+          <td style="color:var(--teal);font-weight:700;font-size:15px;">{{ b.estimated_cost_inr | inr }}</td>
+          <td class="text-sm text-muted">{{ b.cost_range_inr[0] | inr }} – {{ b.cost_range_inr[1] | inr }}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;max-width:320px;">
+              {% for item in b.recommended_checklist[:3] %}
+              <span class="badge badge-muted" style="font-size:10px;">{{ item.component_name }}</span>
+              {% endfor %}
+            </div>
+          </td>
+          <td class="text-xs">
+            {% if b.is_empirical_match %}
+            <span class="badge badge-teal" style="font-size:10px;">Empirical Workshop Records</span>
+            {% else %}
+            <span class="badge badge-info" style="font-size:10px;">Segment Benchmark</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted" style="padding:16px;">No vehicle budget projections available.</p>
+  {% endif %}
+</div>
+
+<!-- ── 3. Indian Dealership Maintenance Cost Benchmarks (Audit Records) ─ -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">📊 Indian Dealership Service Cost Benchmarks (Audited Dataset)</div>
+      <div class="text-xs text-muted" style="margin-top:2px;">
+        Derived from 1,139 periodic service records across authorised Mumbai and Chennai service centres.
+      </div>
+    </div>
+    <span class="badge badge-teal">1,139 Records</span>
+  </div>
+
+  {% if benchmarks %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Brand / Scope</th><th>Model / Segment</th><th>Vehicle Segment</th><th>Sample Count</th>
+        <th>Median Periodic Cost</th><th>Expected IQR Range (₹)</th><th>Data Coverage</th>
+      </tr></thead>
+      <tbody>
+        {% for bm in benchmarks %}
+        <tr>
+          <td class="primary">{{ bm.make }}</td>
+          <td>{{ bm.model }}</td>
+          <td><span class="badge badge-info">{{ bm.segment }}</span></td>
+          <td class="text-mono">{{ bm.sample_count if bm.sample_count > 0 else 'Benchmark' }}</td>
+          <td style="color:var(--teal);font-weight:700;">{{ bm.median_cost_inr | inr }}</td>
+          <td class="text-sm">{{ bm.cost_range_inr[0] | inr }} – {{ bm.cost_range_inr[1] | inr }}</td>
+          <td class="text-xs text-muted">
+            {% if bm.is_empirical %}
+            <span class="badge badge-healthy" style="font-size:10px;">Empirical Dealership Records</span>
+            {% else %}
+            <span class="badge badge-muted" style="font-size:10px;">Segment Fallback</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
